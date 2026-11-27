@@ -1,6 +1,6 @@
 /**
- * Comprehensive Hindi, Hinglish, and English vernacular vocabulary
- * for daily Indian household services.
+ * Comprehensive Hindi, Hinglish, Gujarati, Marathi, and English vernacular vocabulary
+ * for daily Indian household doorstep services and vendor delivery routes.
  */
 
 export const NUMBER_WORDS: Record<string, number> = {
@@ -25,13 +25,24 @@ export const NUMBER_WORDS: Record<string, number> = {
   'पाव': 0.25,
 
   // Gujarati vernacular fractions & numerals (ગુજરાતી)
-  'દોઢ': 1.5, 'dodh': 1.5,
-  'અઢી': 2.5, 'adhi': 2.5,
+  'દોઢ': 1.5, 'dodh': 1.5, 'dod': 1.5,
+  'અઢી': 2.5, 'adhi': 2.5, 'adhee': 2.5,
   'સવા': 1.25, 'sava': 1.25,
-  'અડધો': 0.5, 'adho': 0.5,
-  'પોણો': 0.75, 'પોણા': 0.75,
-  'એક': 1, 'બે': 2, 'ત્રણ': 3, 'ચાર': 4, 'પાંચ': 5,
-  'છ': 6, 'સાત': 7, 'આઠ': 8, 'નવ': 9, 'દસ': 10,
+  'અડધો': 0.5, 'adho': 0.5, 'adhu': 0.5, 'અડધું': 0.5,
+  'પોણો': 0.75, 'પોણા': 0.75, 'pono': 0.75, 'pona': 0.75,
+  'એક': 1, 'બે': 2, 'be': 2, 'ત્રણ': 3, 'tran': 3, 'traan': 3, 'ચાર': 4, 'char': 4, 'chaar': 4, 'પાંચ': 5,
+  'છ': 6, 'સાત': 7, 'આઠ': 8, 'નવ': 9, 'દસ': 10, 'nav': 9, 'navu': 9, 'dash': 10,
+  'agiyar': 11, 'bar': 12, 'ter': 13, 'chaud': 14, 'pandar': 15, 'sol': 16, 'sattar': 17, 'adhaar': 18, 'ognais': 19, 'vis': 20,
+
+  // Hundred multiples & currency (Hindi, Gujarati, Romanized)
+  'so': 100, 'sau': 100, 'સો': 100, 'सौ': 100,
+  'baso': 200, 'doso': 200, 'બસો': 200, 'દોસો': 200,
+  'transo': 300, 'ત્રણસો': 300,
+  'charso': 400, 'ચારસો': 400,
+  'paanso': 500, 'panso': 500, 'pancho': 500, 'પાંચસો': 500,
+  'chhaso': 600, 'satso': 700, 'aathso': 800, 'navso': 900,
+  'છસો': 600, 'સાતસો': 700, 'આઠસો': 800, 'નવસો': 900,
+  'hazar': 1000, 'hajaar': 1000, 'हजार': 1000, 'હજાર': 1000,
 
   // Marathi vernacular fractions & numerals (मराठी)
   'दीड': 1.5, 'deed': 1.5,
@@ -44,7 +55,6 @@ export const NUMBER_WORDS: Record<string, number> = {
   'ek': 1, 'एक': 1,
   'do': 2, 'दो': 2,
   'teen': 3, 'तीन': 3,
-  'char': 4, 'chaar': 4, 'चार': 4,
   'paanch': 5, 'panch': 5, 'पांच': 5,
   'chhe': 6, 'che': 6, 'छह': 6,
   'saat': 7, 'सात': 7,
@@ -70,60 +80,76 @@ export const NUMBER_WORDS: Record<string, number> = {
 export const VENDOR_KEYWORDS = {
   milk: [
     'doodh', 'dudh', 'doodhwala', 'dudhwala', 'milk', 'milkman', 'amul', 
-    'mother dairy', 'दूध', 'दूधवाला', 'દૂધ', 'દૂધવાળો', 'गवळी'
+    'mother dairy', 'दूध', 'दूधवाला', 'દૂધ', 'દુધ', 'દૂધવાળો', 'દૂધવાળા', 'દુધવાળો', 'દૂધવાળાને', 'દૂધવાળા ને', 'ગવળી'
   ],
   water: [
     'water', 'paani', 'pani', 'can', 'cans', 'jar', 'jars', 'bisleri', 
-    'bislari', '20l', 'पानी', 'कैन', 'जार', 'પાણી', 'પાણીની કેન', 'पाणी'
+    'bislari', '20l', 'पानी', 'कैन', 'जार', 'પાણી', 'પાણીની કેન', 'પાણી ની કેન', 'પાણી નું કેન', 'કેન', 'બોટલ',
+    'પાણીવાળો', 'પાણીવાળા', 'પાણીવાળાને', 'પાણી વાળા', 'પાણી વાળો', 'પાણીવાળા ને'
   ],
   laundry: [
     'press', 'presswala', 'presswale', 'istri', 'istriwala', 'iron', 'ironing', 'ironwala', 
     'dhobi', 'dhobila', 'laundry', 'kapde', 'kapda', 'shirt', 'pant', 'saree', 'kurta', 
-    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े', 'કપડાં', 'ઇસ્ત્રી', 'ઇસ્ત્રીવાળા', 'ઇસ્ત્રીવાળો', 'ધોબી', 'धुलाई', 'धोबीला'
+    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े', 'કપડાં', 'કપડા', 'ઇસ્ત્રી', 'ઇસ્ત્રીવાળા', 'ઇસ્ત્રીવાળો', 'ઇસ્ત્રીવાળાને', 
+    'ધોબી', 'ધોબીને', 'ધુલાઈ', 'ધોબીલા', 'પ્રેસ', 'પ્રેસવાળા', 'પ્રેસવાળો', 'પ્રેસ વાળા', 'પ્રેસ વાળો', 'પ્રેસવાળાને'
   ],
   maid: [
-    'maid', 'didi', 'bai', 'kaamwali', 'kamwali', 'pocha', 'jhadu', 
-    'bartan', 'cook', 'कामवाली', 'दीदी', 'बाई', 'झाड़ू', 'पोछा', 'કામવાળા', 'વાસીદા'
+    'maid', 'didi', 'bai', 'kaamwali', 'kamwali', 'kaamwala', 'kamwala', 'ben', 'kamwali ben', 'pocha', 'jhadu', 
+    'bartan', 'cook', 'कामवाली', 'दीदी', 'बाई', 'झाड़ू', 'पोछा', 'કામવાળા', 'કામવાળી', 'કામવાળા બહેન', 'કામવાળા બેન', 
+    'કામવાળાને', 'કામવાળીને', 'કામવાળા ને', 'કામવાળી ને', 'વાસીદા'
   ],
   tiffin: [
-    'tiffin', 'dabba', 'khana', 'lunch', 'meal', 'thali', 'टििफन', 'डब्बा', 'खाना', 'ટિફિન', 'ડબ્બો'
+    'tiffin', 'dabba', 'khana', 'lunch', 'meal', 'thali', 'टििफन', 'डब्बा', 'खाना', 'ટિફિન', 'ડબ્બો', 'રોટલી', 'શાક',
+    'ટિફિનવાળા', 'ટિફિન વાળો', 'ટિફિનવાળાને'
   ],
   newspaper: [
-    'newspaper', 'paper', 'akhbar', 'akbhar', 'patrika', 'अखबार', 'पेपर', 'છાપું', 'वर्तमानपत्र'
+    'newspaper', 'paper', 'akhbar', 'akbhar', 'patrika', 'अखबार', 'पेपर', 'છાપું', 'છાપાવાળા', 'वर्तमानपत्र'
   ]
 };
 
 export const CLOTHING_ITEMS: Record<string, string> = {
   'shirt': 'shirt', 'shirts': 'shirt', 'शर्ट': 'shirt', 'શર્ટ': 'shirt',
   'pant': 'pant', 'pants': 'pant', 'trouser': 'pant', 'पैंट': 'pant', 'પેન્ટ': 'pant',
-  'saree': 'saree', 'sari': 'saree', 'साड़ी': 'saree',
-  'kurta': 'kurta', 'kurti': 'kurti', 'कुर्ता': 'kurta',
+  'saree': 'saree', 'sari': 'saree', 'साड़ी': 'saree', 'સાડી': 'saree',
+  'kurta': 'kurta', 'kurti': 'kurti', 'कुर्ता': 'kurta', 'કુર્તા': 'kurta',
   'tshirt': 'tshirt', 't-shirt': 'tshirt',
   'jeans': 'jeans',
-  'bedsheet': 'bedsheet', 'chadar': 'bedsheet', 'चादर': 'bedsheet'
+  'bedsheet': 'bedsheet', 'chadar': 'bedsheet', 'चादर': 'bedsheet', 'ચાદર': 'bedsheet'
 };
 
 export const ACTION_KEYWORDS = {
   absent: [
-    'chhutti', 'chutti', 'naaga', 'naga', 'nahi aayi', 'nahi aaya', 'leave', 
-    'absent', 'off', 'miss', 'छुट्टी', 'नागा', 'नहीं आई', 'રજા', 'સુટ્ટી', 'સુટી', 'ગેરહાજર', 'सुट्टी', 'नाही आली'
+    'chhutti', 'chutti', 'naaga', 'naga', 'nahi aayi', 'nahi aaya', 'nahi aaye', 'leave', 
+    'absent', 'off', 'miss', 'nathi aavya', 'nathi aavi', 'nathi aavyo', 'raja', 'raja che', 'sutti',
+    'छुट्टी', 'नागा', 'नहीं आई', 'नहीं आया', 'नहीं आए', 
+    'રજા', 'રજા છે', 'રજા પર', 'સુટ્ટી', 'સુટી', 'ગેરહાજર', 'નથી આવ્યા', 'નથી આવી', 'નથી આવ્યો', 
+    'सुट्टी', 'नाही आली', 'नाही आले'
   ],
   returned: [
     'khali', 'khali jar', 'wapas', 'wapas diya', 'return', 'returned', 'empty', 
-    'खाली', 'वापस', 'ખાલી', 'ખાલી જાર', 'પાછું આપ્યું', 'रिकामी'
+    'khali jar aapi', 'khali jar aapyu', 'khali aapi',
+    'खाली', 'वापस', 'ખાલી', 'ખાલી જાર', 'પાછું આપ્યું', 'પાછી આપી', 'રિકામી'
   ],
   advance: [
-    'advance', 'udhar', 'peshgi', 'advance diya', 'उधार', 'एडवांस', 'ઉપાડ', 'अगाऊ'
+    'advance', 'udhar', 'peshgi', 'advance diya', 'advance diye', 'advance aapyu', 'advance aapya', 'advance aapiya', 'advance aapiyo', 'advance aapo', 
+    'upad', 'upad aapyu', 'upad aapya', 'upad aapiya', 'upad aapiyo', 'upad aapo',
+    'ઉપાડ', 'ઉપાડ આપ્યો', 'ઉપાડ આપ્યા', 'ઉપાડ આપ્યું', 'ઉપાડ આપિયા', 'उधार', 'एडवांस', 'અગાઉ', 'એડવાન્સ'
   ],
   received: [
-    'liya', 'aaya', 'aaye', 'mila', 'aayi', 'delivered', 'got', 'took', 
-    'लिया', 'आया', 'आए', 'मिली', 'લીધું', 'આવ્યું', 'घेतले'
+    'liya', 'liye', 'aaya', 'aaye', 'mila', 'mile', 'aayi', 'delivered', 'got', 'took', 
+    'lidhu', 'lidha', 'lidhi', 'lidho', 'aavyu', 'aavya', 'aavi', 'malya', 'malyu', 'mali',
+    'लिया', 'लिए', 'आया', 'आए', 'मिली', 'લીધું', 'લીધા', 'લીધી', 'આવ્યું', 'આવ્યા', 'આવી', 'મળ્યા', 'મળ્યું', 'મળી', 'घेतले', 'आले'
   ],
   given: [
     'diya', 'diye', 'diyi', 'bheja', 'bheje', 'given', 'sent', 'gave', 
-    'दिया', 'दिए', 'भेजा', 'આપ્યું', 'दिले'
+    'aapyu', 'aapya', 'aapi', 'aapiya', 'aapiyo', 'apiya', 'aapyo', 'apyo', 'didha', 'didho', 'ditha', 'dithi', 'aapo',
+    'moklya', 'moklyu', 'chukavya', 'chukavyo', 'chuko',
+    'दिया', 'दिए', 'भेजा', 'આપ્યું', 'આપ્યા', 'આપી', 'આપિયા', 'આપ્યો', 'મોકલ્યા', 'મોકલ્યું', 'દીધા', 'દીધું', 'ચૂકવ્યા', 'ચુકવ્યા', 'दिले'
   ],
   skipped: [
-    'skip', 'skipped', 'band', 'aaj band', 'nahi chahiye', 'बंद', 'स्किप', 'બંધ', 'નથી જોઈતું'
+    'skip', 'skipped', 'band', 'bandh', 'aaj band', 'nahi chahiye', 'nahi liya', 'nahi li', 'nahi diya', 'nahi aaya',
+    'nathi lidhu', 'nathi lidhi', 'nathi lidho', 'nathi aavyu', 'nathi joytu', 'bandh che', 'bandh chhe', 'aaj bandh',
+    'बंद', 'स्किप', 'नहीं लिया', 'नहीं ली', 'नहीं दिया', 'नहीं आया',
+    'બંધ', 'બંધ છે', 'નથી જોઈતું', 'નથી લીધું', 'નથી આવ્યું', 'નથી આપ્યું'
   ]
 };
