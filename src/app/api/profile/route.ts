@@ -28,6 +28,8 @@ export async function GET() {
         vendorBusinessName: user.vendorBusinessName || 'Raju Doodh Dairy',
         vendorCategory: user.vendorCategory || 'milk',
         vendorRouteName: user.vendorRouteName || 'Gokuldham Heights - Tower A',
+        merchantUpiPhone: user.merchantUpiPhone || '9876543210',
+        merchantRate: user.merchantRate || 68,
         availableMembers: ['Kaushal', 'Mummy', 'Papa', 'Sister', 'Grandpa']
       }
     });
@@ -45,7 +47,9 @@ export async function PUT(req: NextRequest) {
       householdCode, 
       vendorBusinessName, 
       vendorCategory, 
-      vendorRouteName 
+      vendorRouteName,
+      merchantUpiPhone,
+      merchantRate
     } = body;
 
     let user = await prisma.user.findFirst();
@@ -61,7 +65,9 @@ export async function PUT(req: NextRequest) {
         householdCode: householdCode !== undefined ? householdCode : undefined,
         vendorBusinessName: vendorBusinessName !== undefined ? vendorBusinessName : undefined,
         vendorCategory: vendorCategory !== undefined ? vendorCategory : undefined,
-        vendorRouteName: vendorRouteName !== undefined ? vendorRouteName : undefined
+        vendorRouteName: vendorRouteName !== undefined ? vendorRouteName : undefined,
+        merchantUpiPhone: merchantUpiPhone !== undefined ? merchantUpiPhone : undefined,
+        merchantRate: merchantRate !== undefined ? parseFloat(merchantRate) : undefined
       }
     });
 

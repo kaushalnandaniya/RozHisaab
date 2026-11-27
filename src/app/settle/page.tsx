@@ -46,6 +46,14 @@ export default function SettlePage() {
     fetchProfile();
     fetchVendors();
     fetchCustomers();
+
+    const handleRoleChange = (e: any) => {
+      setRole(e.detail);
+    };
+    window.addEventListener('rozhisaab-role-changed', handleRoleChange);
+    return () => {
+      window.removeEventListener('rozhisaab-role-changed', handleRoleChange);
+    };
   }, []);
 
   const fetchProfile = async () => {

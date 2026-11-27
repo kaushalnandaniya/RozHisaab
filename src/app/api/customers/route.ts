@@ -124,3 +124,20 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'Missing customer id' }, { status: 400 });
+    }
+
+    await prisma.customer.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true, message: 'Customer deleted from route' });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

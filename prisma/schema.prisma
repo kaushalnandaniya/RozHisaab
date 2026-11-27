@@ -17,6 +17,8 @@ model User {
   vendorBusinessName String?    @default("Raju Doodh Dairy")
   vendorCategory     String?    @default("milk") // milk, water, laundry, tiffin
   vendorRouteName    String?    @default("Gokuldham Heights - Tower A")
+  merchantUpiPhone   String?    @default("9876543210")
+  merchantRate       Float?     @default(68)
   createdAt          DateTime   @default(now())
   vendors            Vendor[]
   entries            Entry[]
