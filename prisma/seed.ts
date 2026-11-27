@@ -3,19 +3,20 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function seedDefaults() {
-  // Ensure default demo user
   let user = await prisma.user.findFirst();
   if (!user) {
     user = await prisma.user.create({
       data: {
         id: 'default-user',
         name: 'Sharma Household',
-        language: 'hi'
+        language: 'hi',
+        role: 'household',
+        householdCode: 'SHARMA-402',
+        activeMemberName: 'Kaushal'
       }
     });
   }
 
-  // Ensure default vendors exist
   const defaultVendors = [
     {
       category: 'milk',
@@ -49,7 +50,7 @@ export async function seedDefaults() {
       category: 'maid',
       displayName: 'Kaam Wali (Sunita Didi)',
       unit: 'day',
-      unitRate: 150, // daily equivalent of ₹4500/mo
+      unitRate: 150,
       icon: '🧹',
       color: '#F59E0B',
       vendorPhone: '9876543213'
@@ -79,7 +80,29 @@ export async function seedDefaults() {
     }
   }
 
-  console.log('RozHisaab default user and vendors seeded successfully!');
+  // Seed default vendor customers (for Vyapari Mode)
+  const defaultCustomers = [
+    { flatNumber: 'Flat 402', customerName: 'Sharma Ji', phone: '9876543210', dailyQuantity: 1.5, pendingBalance: 2040 },
+    { flatNumber: 'Flat 501', customerName: 'Verma Ji', phone: '9876543222', dailyQuantity: 2.0, pendingBalance: 2720 },
+    { flatNumber: 'Flat 104', customerName: 'Patel Ji', phone: '9876543233', dailyQuantity: 1.0, pendingBalance: 1360 },
+    { flatNumber: 'Flat 302', customerName: 'Gupta Ji', phone: '9876543244', dailyQuantity: 1.5, pendingBalance: 1904 }
+  ];
+
+  for (const c of defaultCustomers) {
+    const existing = await prisma.customer.findFirst({
+      where: { userId: user.id, flatNumber: c.flatNumber }
+    });
+    if (!existing) {
+      await prisma.customer.create({
+        data: {
+          userId: user.id,
+          ...c
+        }
+      });
+    }
+  }
+
+  console.log('RozHisaab default user, vendors, and customers seeded successfully!');
 }
 
 seedDefaults()

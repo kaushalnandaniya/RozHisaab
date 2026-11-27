@@ -8,12 +8,16 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String   @default("Home")
-  language  String   @default("hi")
-  createdAt DateTime @default(now())
-  vendors   Vendor[]
-  entries   Entry[]
+  id               String   @id @default(uuid())
+  name             String   @default("Sharma Household")
+  language         String   @default("hi")
+  role             String   @default("household") // "household" or "vendor"
+  householdCode    String   @default("SHARMA-402")
+  activeMemberName String   @default("Kaushal")
+  createdAt        DateTime @default(now())
+  vendors          Vendor[]
+  entries          Entry[]
+  customers        Customer[]
 }
 
 model Vendor {
@@ -32,6 +36,19 @@ model Vendor {
   entries           Entry[]
 }
 
+// For Vendor Mode: Customer list (e.g. Flat 402, Flat 501)
+model Customer {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flatNumber      String   // e.g. "Flat 402", "B-104"
+  customerName    String   // e.g. "Sharma Ji", "Verma Ji"
+  phone           String?
+  dailyQuantity   Float    @default(1.0)
+  pendingBalance  Float    @default(0)
+  createdAt       DateTime @default(now())
+}
+
 model Entry {
   id               String   @id @default(uuid())
   userId           String
@@ -45,5 +62,7 @@ model Entry {
   metadata         String?  // JSON stringified for items, notes, emptyReturned
   amountCalculated Float    @default(0)
   rawTranscript    String?
+  loggedBy         String?  @default("Self") // "Mummy", "Kaushal", "Papa"
+  customerFlat     String?  // If logged in vendor mode
   createdAt        DateTime @default(now())
 }

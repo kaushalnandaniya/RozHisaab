@@ -157,19 +157,30 @@ export default function SettlePage() {
                     href={shareUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md shadow-emerald-600/20 transition-all"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 px-5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md shadow-emerald-600/20 transition-all"
                   >
                     <Send className="w-4 h-4" />
                     <span>WhatsApp Pe Bhejein</span>
                     <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                   </a>
 
+                  {summary.upiPaymentLink && (
+                    <a
+                      href={summary.upiPaymentLink}
+                      className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 px-5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-md shadow-indigo-600/20 transition-all"
+                      title="Direct UPI Payment via GPay, PhonePe, Paytm, BHIM"
+                    >
+                      <IndianRupee className="w-4 h-4" />
+                      <span>Pay via UPI</span>
+                    </a>
+                  )}
+
                   <button
                     onClick={copyToClipboard}
-                    className="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm transition-all"
+                    className="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-bold py-3.5 px-5 rounded-2xl flex items-center justify-center gap-2 text-sm transition-all"
                   >
                     {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    <span>{copied ? 'Copied to Clipboard!' : 'Copy Message'}</span>
+                    <span>{copied ? 'Copied!' : 'Copy'}</span>
                   </button>
                 </div>
               </div>

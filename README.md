@@ -19,18 +19,29 @@ Because transactions happen at the front door while holding bags or rushing out,
 ---
 
 ## 🚀 The Voice-First Solution
-**RozHisaab** lets you speak one natural sentence in Hindi, Hinglish, or English right as the door closes:
+**RozHisaab** is a two-sided voice-first platform tailored for both Indian households and local doorstep vendors:
 
-> *"Aaj doodh dedh litre liya, 2 water can aaye aur 1 khali jar wapas diya, aur didi chhutti pe hain."*
+### 1. 🏠 Household / Family Mode (Ghar Ka Sadasya)
+- **3-Second Compound Voice Log:** Speak one natural sentence right as the door closes:  
+  > *"Aaj doodh dedh litre liya, 2 water can aaye aur 1 khali jar wapas diya, aur didi chhutti pe hain."*
+- **Instant Multi-Vendor Parsing:** Automatically splits into structured records:
+  - 🥛 Milk: +1.5 L
+  - 💧 Water: +2 Cans, 1 Empty Jar returned (deposit balance updated)
+  - 🧹 Maid: Absent (Chhutti)
+- **Family Shared Sync:** Share your Household Code (e.g. `SHARMA-402`) with family members (Kaushal, Mummy, Papa, etc.) so multiple family members can log daily doorstep items without duplicate logs.
+- **Voice Q&A:** Spoken balance checks: *"Is mahine paani ka total kitna hua?"*
+- **1-Click Direct UPI & WhatsApp Settlement:** Generates date-stamped WhatsApp bills and native `upi://` links (Google Pay, PhonePe, Paytm, BHIM) to settle month-end bills without disputes.
 
-1. **3-Second Voice Log:** Captures compound multi-vendor speech without typing.
-2. **Instant Multi-Vendor Parsing:** Automatically splits into separate structured records:
-   - Milk: +1.5 L
-   - Water: +2 Cans, 1 Empty Jar returned
-   - Maid: Absent (Chhutti)
-3. **Audio Confirmation:** Speaks back a crisp 2-second Hindi confirmation via speech synthesis.
-4. **5-Second Undo:** Accidental entries can be reverted with one tap.
-5. **Month-End WhatsApp Settlement:** Generates a date-stamped, bilingual WhatsApp bill with a UPI deep link to settle on Day 1 without arguments.
+### 2. 🛵 Local Vendor / Vyapari Mode (Doodhwala, Water Supplier, Presswala)
+- **Route Delivery Batching:** Vendors delivering across apartment societies can speak their entire morning route in a single breath:  
+  > *"Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti"*
+- **Apartment Customer Book:** Per-flat ledger with automated pending balance updates.
+- **1-Tap WhatsApp Invoicing:** Send itemized monthly bills directly to apartment residents.
+
+### 3. 📱 Adaptive Auto-Responsive UI
+- **Desktop Mode (≥ md):** Two-column command center with a persistent left voice station, quick preset chips, sticky top navigation bar, and expanded tables.
+- **Mobile Mode (< md):** Handheld-first single-column feed, sticky bottom navigation bar, and big tap-friendly controls.
+- **Category Onboarding Wizard:** First-time launch wizard prompts the user to select their category (Ghar Ka Sadasya vs Local Vyapari) and customize their profile.
 
 ---
 

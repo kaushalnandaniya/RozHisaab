@@ -20,9 +20,17 @@ export type EntryAction =
   | 'skipped';
 
 export type UserIntent = 
-  | 'log_entry'      // "Aaj doodh dedh litre liya..."
-  | 'add_vendor'     // "Naya vendor add karo: Ramu Car wash, rate 500..."
-  | 'query_hisaab';  // "Is mahine paani ka kitna hisaab hua?"
+  | 'log_entry'        // "Aaj doodh dedh litre liya..."
+  | 'add_vendor'       // "Naya vendor add karo: Ramu Car wash, rate 500..."
+  | 'query_hisaab'     // "Is mahine paani ka kitna hisaab hua?"
+  | 'vendor_delivery'; // "Flat 402 dedh litre, Flat 501 do litre..."
+
+export interface VendorDeliveryItem {
+  flatNumber: string;
+  quantity: number;
+  unit: string;
+  action: 'received' | 'absent';
+}
 
 export interface Vendor {
   id: string;
@@ -91,6 +99,7 @@ export interface ParseResult {
   intent: UserIntent;
   transcript: string;
   items: ParsedItem[];
+  deliveries?: VendorDeliveryItem[];
   newVendor?: NewVendorPayload;
   query?: QueryPayload;
   method: 'wispr' | 'gemini' | 'groq' | 'rule_based';

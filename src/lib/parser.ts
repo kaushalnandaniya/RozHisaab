@@ -1,5 +1,5 @@
 import { NUMBER_WORDS, VENDOR_KEYWORDS, CLOTHING_ITEMS, ACTION_KEYWORDS } from './slang-map';
-import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVendorPayload, QueryPayload } from '@/types';
+import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVendorPayload, QueryPayload, VendorDeliveryItem } from '@/types';
 
 /**
  * Extracts numeric quantity from words or digits.
@@ -91,7 +91,52 @@ export function detectIntent(text: string): UserIntent {
     return 'query_hisaab';
   }
 
+  // Check if vendor delivery route (mentions "flat" or multiple flats)
+  if (lower.includes('flat') || lower.match(/\b\d{3}\s*(?:mein|me|ko)?\b/)) {
+    return 'vendor_delivery';
+  }
+
   return 'log_entry';
+}
+
+/**
+ * Parses vendor delivery route speech
+ * Example: "Flat 402 dedh litre, Flat 501 2 litre, Flat 104 chhutti"
+ */
+export function parseVendorDelivery(rawTranscript: string): ParseResult {
+  const deliveries: VendorDeliveryItem[] = [];
+  const segments = rawTranscript.split(/[,;\n]|(?:\s+aur\s+)/i).map(s => s.trim()).filter(Boolean);
+
+  for (const seg of segments) {
+    const flatMatch = seg.match(/(?:flat\s*)?(\d{3,4}|[a-z]-\d{3})/i);
+    if (flatMatch) {
+      const flatNum = flatMatch[0].toLowerCase().startsWith('flat') ? flatMatch[0] : `Flat ${flatMatch[0]}`;
+      const isAbsent = seg.toLowerCase().includes('chhutti') || seg.toLowerCase().includes('band') || seg.toLowerCase().includes('naaga');
+      const qty = isAbsent ? 0 : (extractNumber(seg) ?? 1);
+
+      deliveries.push({
+        flatNumber: flatNum.toUpperCase(),
+        quantity: qty,
+        unit: 'litres',
+        action: isAbsent ? 'absent' : 'received'
+      });
+    }
+  }
+
+  const spokenParts = deliveries.map(d => {
+    return d.action === 'absent' ? `${d.flatNumber} chhutti` : `${d.flatNumber} ${d.quantity}L`;
+  });
+
+  return {
+    success: deliveries.length > 0,
+    intent: 'vendor_delivery',
+    transcript: rawTranscript,
+    items: [],
+    deliveries,
+    method: 'rule_based',
+    spokenResponseHindi: `Vyapari hisaab note ho gaya: ${spokenParts.join(', ')}!`,
+    spokenResponseEnglish: `Route delivery logged: ${spokenParts.join(', ')}!`
+  };
 }
 
 /**
@@ -245,6 +290,10 @@ export function parseRuleBased(rawTranscript: string): ParseResult {
 
   if (intent === 'query_hisaab') {
     return parseQueryHisaab(rawTranscript);
+  }
+
+  if (intent === 'vendor_delivery') {
+    return parseVendorDelivery(rawTranscript);
   }
 
   // --- LOG_ENTRY (Default Doorstep Daily Logger) ---

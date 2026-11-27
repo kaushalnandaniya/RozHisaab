@@ -112,7 +112,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     }
 
-    // Intent 3: LOG_ENTRY (Default)
+    // Intent 3: VENDOR ROUTE DELIVERY BATCH (Vyapari Mode)
+    if (result.intent === 'vendor_delivery' && result.deliveries) {
+      let user = await prisma.user.findFirst();
+      if (!user) user = await prisma.user.create({ data: { name: 'Sharma Household' } });
+
+      for (const del of result.deliveries) {
+        // Find matching customer or create
+        let customer = await prisma.customer.findFirst({
+          where: { userId: user.id, flatNumber: { contains: del.flatNumber } }
+        });
+
+        if (customer && del.action !== 'absent') {
+          await prisma.customer.update({
+            where: { id: customer.id },
+            data: {
+              pendingBalance: customer.pendingBalance + (del.quantity * 68) // default unit rate
+            }
+          });
+        }
+      }
+
+      return NextResponse.json(result);
+    }
+
+    // Intent 4: LOG_ENTRY (Default Household)
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error in /api/parse:', error);
