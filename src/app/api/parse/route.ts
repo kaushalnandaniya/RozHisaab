@@ -112,6 +112,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     }
 
+    // Intent 2.5: ADD CUSTOMER TO ROUTE VIA VOICE (Vyapari Mode)
+    if (result.intent === 'add_customer' && result.newCustomer) {
+      let user = await prisma.user.findFirst();
+      if (!user) {
+        user = await prisma.user.create({ data: { name: 'Sharma Household' } });
+      }
+
+      const { flatNumber, customerName, dailyQuantity, phone } = result.newCustomer;
+      const cleanName = customerName.replace(/(?:ji|जी|bhai|भाई|flat|फ्लैट)/gi, '').trim();
+
+      // Check if customer already exists on this route
+      let customer = await prisma.customer.findFirst({
+        where: {
+          userId: user.id,
+          OR: [
+            { flatNumber: { contains: flatNumber } },
+            { flatNumber: { contains: cleanName } },
+            { customerName: { contains: cleanName } }
+          ]
+        }
+      });
+
+      let savedCustomer;
+      if (customer) {
+        savedCustomer = await prisma.customer.update({
+          where: { id: customer.id },
+          data: {
+            flatNumber,
+            customerName,
+            dailyQuantity: dailyQuantity !== undefined ? dailyQuantity : customer.dailyQuantity,
+            phone: phone || customer.phone
+          }
+        });
+      } else {
+        savedCustomer = await prisma.customer.create({
+          data: {
+            userId: user.id,
+            flatNumber,
+            customerName,
+            dailyQuantity: dailyQuantity || 1.5,
+            phone: phone || undefined,
+            pendingBalance: 0 // ZERO pending balance, NO delivery created!
+          }
+        });
+      }
+
+      return NextResponse.json({
+        ...result,
+        savedCustomer
+      });
+    }
+
     // Intent 3: VENDOR ROUTE DELIVERY BATCH (Vyapari Mode)
     if (result.intent === 'vendor_delivery' && result.deliveries) {
       let user = await prisma.user.findFirst();

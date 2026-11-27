@@ -4,7 +4,7 @@ import { ParseResult } from '@/types';
 /**
  * Intelligent parser wrapper:
  * 1. Checks if GEMINI_API_KEY / GOOGLE_AI_API_KEY is available.
- * 2. If available, uses Gemini Flash for nuanced conversational Hinglish extraction.
+ * 2. If available, uses Gemini Flash for nuanced conversational Hindi/Hinglish extraction.
  * 3. If NOT available, gracefully falls back to the local deterministic `parseRuleBased` engine.
  * The user NEVER gets a blocking error if keys are missing!
  */
@@ -18,38 +18,55 @@ export async function parseTranscript(transcript: string): Promise<ParseResult> 
   }
 
   try {
-    const prompt = `You are RozHisaab, an Indian household doorstep delivery parser.
-Given a spoken sentence in Hindi, Hinglish, or English, extract ALL household services mentioned into JSON.
+    const prompt = `You are RozHisaab, an Indian doorstep ledger and route assistant.
+Analyze the user's spoken sentence in Hindi, Hinglish, or English and extract the exact intent and parameters.
 
-Known vendor categories:
-- milk (doodh): unit "litres"
-- water (paani): unit "cans", also check if any empty jars were returned
-- laundry (presswala): unit "pieces", count items (shirt, pant, saree, etc)
-- maid (kaamwali/didi): action "absent" (if chhutti/naaga), "advance" (if cash advance given), or "received"
-- tiffin: unit "meals", action "received" or "skipped" (if band/chhutti)
-- newspaper: unit "copies"
+Available Intents:
+1. "add_customer": The user is adding a flat or resident to the vendor's delivery route.
+   Example: "Add 405 flat number Nandaniya ji", "फ्लैट 405 नंदानिया जी को जोड़ो", "Add flat 405 Nandaniya ji daily 2 litres"
+   Output:
+   - "newCustomer": {
+       "flatNumber": string (e.g. "Flat 405"),
+       "customerName": string (e.g. "Nandaniya Ji" or "नंदानिया जी"),
+       "dailyQuantity"?: number (ONLY include if user explicitly specified daily quantity like "daily 2L" or "roz 2 litre", else DO NOT include),
+       "phone"?: string (10 digits if provided)
+     }
+   CRITICAL: If user did NOT state any delivery or quantity, do NOT invent or force any quantity.
 
-Indian Number vocabulary:
-- dedh = 1.5, dhaai = 2.5, sawa = 1.25, paune do = 1.75, aadha = 0.5, pau = 0.25
+2. "vendor_delivery": The merchant/vendor is logging daily route deliveries.
+   Example: "Gupta ji ko 2 L doodh extra diya", "Flat 402 dedh litre, Flat 501 2 litre, Flat 104 chhutti"
+   Output:
+   - "deliveries": array of {
+       "flatNumber": string,
+       "customerName"?: string,
+       "quantity": number,
+       "unit": "litres" | "cans",
+       "action": "received" | "absent" | "extra",
+       "isExtra"?: boolean
+     }
+
+3. "add_vendor": A household user is adding a new service vendor.
+   Example: "Naya vendor add karo: Ramu Car wash, rate 500 rupaye mahina, phone 9876543210"
+   Output:
+   - "newVendor": { "displayName": string, "category": string, "unit": string, "unitRate": number, "vendorPhone"?: string }
+
+4. "query_hisaab": A user is asking for their bill or summary.
+   Example: "Is mahine paani ka kitna hisaab hua?"
+
+5. "log_entry": Household daily log.
+   Example: "Aaj 2 litre doodh liya aur 1 can paani"
+   Output:
+   - "items": array of { "vendorCategory": string, "vendorName": string, "quantity": number, "unit": string, "action": string }
 
 Input transcript: "${transcript}"
 
-Respond strictly with a JSON object adhering to this schema:
+Respond strictly with a JSON object:
 {
-  "items": [
-    {
-      "vendorCategory": "milk" | "water" | "laundry" | "maid" | "tiffin" | "newspaper",
-      "vendorName": string,
-      "quantity": number,
-      "unit": string,
-      "action": "received" | "given" | "absent" | "advance" | "returned" | "skipped",
-      "emptyReturned"?: number,
-      "itemsDetail"?: Record<string, number>,
-      "advanceAmount"?: number,
-      "notes"?: string,
-      "confidence": number
-    }
-  ],
+  "intent": "add_customer" | "vendor_delivery" | "add_vendor" | "query_hisaab" | "log_entry",
+  "newCustomer"?: { "flatNumber": string, "customerName": string, "dailyQuantity"?: number, "phone"?: string },
+  "deliveries"?: [...],
+  "items"?: [...],
+  "newVendor"?: {...},
   "spokenResponseHindi": string,
   "spokenResponseEnglish": string
 }`;
@@ -73,10 +90,14 @@ Respond strictly with a JSON object adhering to this schema:
 
     const parsed = JSON.parse(rawText);
     return {
-      success: (parsed.items || []).length > 0,
+      success: true,
       intent: parsed.intent || 'log_entry',
       transcript,
       items: parsed.items || [],
+      deliveries: parsed.deliveries,
+      newCustomer: parsed.newCustomer,
+      newVendor: parsed.newVendor,
+      query: parsed.query,
       method: 'gemini',
       spokenResponseHindi: parsed.spokenResponseHindi || 'Aapka hisaab note ho gaya!',
       spokenResponseEnglish: parsed.spokenResponseEnglish || 'Saved to your ledger!'

@@ -80,6 +80,9 @@ export default function HomePage() {
   // Vendor route batch confirmation banner
   const [vendorBatchNotice, setVendorBatchNotice] = useState<any[] | null>(null);
 
+  // New Flat / Customer added celebration banner
+  const [addedCustomerNotice, setAddedCustomerNotice] = useState<any | null>(null);
+
   // Active Voice Failure / Warning Alert
   const [voiceAlert, setVoiceAlert] = useState<VoiceAlert | null>(null);
 
@@ -204,6 +207,7 @@ export default function HomePage() {
     setQueryAnswer(null);
     setAddedVendorNotice(null);
     setVendorBatchNotice(null);
+    setAddedCustomerNotice(null);
     setVoiceAlert(null);
 
     try {
@@ -237,6 +241,17 @@ export default function HomePage() {
         confetti({ particleCount: 45, spread: 70, origin: { y: 0.8 } });
         speakHindi(parseData.spokenResponseHindi);
         setVendorBatchNotice(parseData.deliveries);
+        await fetchCustomers();
+        setIsProcessing(false);
+        return;
+      }
+
+      // Case 1.5: ADD CUSTOMER TO ROUTE (Vyapari Mode)
+      if (parseData.intent === 'add_customer') {
+        playSuccessChime();
+        confetti({ particleCount: 45, spread: 70, origin: { y: 0.8 } });
+        speakHindi(parseData.spokenResponseHindi);
+        setAddedCustomerNotice(parseData.savedCustomer || parseData.newCustomer);
         await fetchCustomers();
         setIsProcessing(false);
         return;
@@ -416,6 +431,7 @@ export default function HomePage() {
             customers={customers}
             isProcessing={isProcessing}
             vendorBatchNotice={vendorBatchNotice}
+            addedCustomerNotice={addedCustomerNotice}
             onTranscript={handleTranscript}
             onRefreshCustomers={fetchCustomers}
             onOpenOnboarding={() => setShowOnboardingModal(true)}

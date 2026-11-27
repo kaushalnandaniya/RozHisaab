@@ -1,5 +1,5 @@
 import { NUMBER_WORDS, VENDOR_KEYWORDS, CLOTHING_ITEMS, ACTION_KEYWORDS } from './slang-map';
-import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVendorPayload, QueryPayload, VendorDeliveryItem } from '@/types';
+import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVendorPayload, NewCustomerPayload, QueryPayload, VendorDeliveryItem } from '@/types';
 
 /**
  * Extracts numeric quantity from words or digits.
@@ -65,12 +65,15 @@ const CATEGORY_META: Record<string, { icon: string; color: string; defaultUnit: 
 /**
  * 1. Intent Detection:
  * - add_vendor: "naya vendor", "add vendor", "vendor jodo", "new vendor"
+ * - add_customer: "Add 405 flat number Nandaniya ji", "फ्लैट 405 नंदानिया जी को जोड़ो"
  * - query_hisaab: "kitna hua", "hisaab batao", "total kitna", "kitne kapde", "kitna kharch"
+ * - vendor_delivery: "Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti"
  * - log_entry: normal doorstep logging
  */
 export function detectIntent(text: string): UserIntent {
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().trim();
   
+  // 1. ADD VENDOR (Household mode)
   if (
     lower.includes('naya vendor') || 
     lower.includes('add vendor') || 
@@ -82,6 +85,33 @@ export function detectIntent(text: string): UserIntent {
     return 'add_vendor';
   }
 
+  // 2. ADD CUSTOMER / FLAT TO ROUTE (Vyapari mode)
+  // E.g.: "Add 405 flat number Nandaniya ji", "405 flat number Nandaniya ji add karo", "फ्लैट 405 नंदानिया जी को जोड़ो"
+  const hasAddKeyword = Boolean(
+    lower.match(/(?:^|\s)(?:add|naya|new|jodo|jodein|jodna|shamil|dakhil|जोड़ो|जोड़ो|जोड़ें|जोड़ें|शामिल|ऐड|नया|नई)(?:\s|$|[,\.!?])/i)
+  );
+
+  const hasFlatReference = 
+    lower.includes('flat') || 
+    lower.includes('फ्लैट') || 
+    Boolean(lower.match(/\b\d{3,4}\s*(?:number|no|नं|नंबर|नम्बर)?\b/i));
+
+  const hasCustomerReference = 
+    lower.includes('customer') || 
+    lower.includes('grahak') || 
+    lower.includes('ग्राहक') || 
+    lower.includes('resident') ||
+    Boolean(lower.match(/(?:^|\s)[a-zA-Z\u0900-\u097F]{2,30}\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)(?:\s|$|[,\.!?])/i));
+
+  const hasDeliveryVerb = Boolean(
+    lower.match(/(?:^|\s)(?:diya|de diya|de do|de dena|chhutti|naaga|absent|extra diya|दिया|दे दिया|दे दो|छुट्टी|नागा|एक्स्ट्रा दिया)(?:\s|$|[,\.!?])/i)
+  );
+
+  if (hasAddKeyword && (hasFlatReference || hasCustomerReference) && !hasDeliveryVerb) {
+    return 'add_customer';
+  }
+
+  // 3. QUERY HISAAB
   if (
     lower.includes('kitna hua') ||
     lower.includes('kitna bill') ||
@@ -94,23 +124,117 @@ export function detectIntent(text: string): UserIntent {
     return 'query_hisaab';
   }
 
-  // Check if vendor delivery route (mentions "flat", flat numbers, or customer names like Gupta Ji, Sharma Ji, etc.)
-  const hasFlat = lower.includes('flat') || lower.includes('फ्लैट') || Boolean(lower.match(/\b\d{3}\s*(?:mein|me|ko|को)?\b/));
-  
-  // Names followed by ji, bhai, bhaiya, uncle, aunty OR common surnames
-  const hasCustomerName = Boolean(
-    lower.match(/\b(?:gupta|sharma|verma|patel|agarwal|singh|mishra|joshi|shah|mehta|jain|yadav|khan|गुप्ता|शर्मा|वर्मा|पटेल|अग्रवाल|सिंह|मिश्रा|जोशी|शाह|मेहता|जैन|यादव|खान|[a-z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)\b/i)
+  // 4. VENDOR DELIVERY ROUTE (Vyapari mode)
+  const hasQuantityWord = Boolean(
+    lower.match(/\b(?:litre|liter|लीटर|can|cans|कैन|जार|l|dedh|dhaai|sawa|paune|aadha)\b/i) ||
+    lower.match(/\b\d+(?:\.\d+)?\s*(?:litre|liter|लीटर|can|cans|l)\b/i)
   );
 
-  const hasDeliveryVerb = Boolean(
-    lower.match(/\b(?:extra|एक्स्ट्रा|diya|दिया|de diya|दे दिया|chhutti|छुट्टी|naaga|नागा|doodh|दूध|can|जार|पानी)\b/i)
-  );
-
-  if (hasFlat || (hasCustomerName && (hasDeliveryVerb || lower.includes('litre') || lower.includes('लीटर') || lower.includes('l')))) {
+  if ((hasFlatReference || hasCustomerReference) && (hasDeliveryVerb || hasQuantityWord || lower.includes('doodh') || lower.includes('दूध') || lower.includes('extra') || lower.includes('एक्स्ट्रा'))) {
     return 'vendor_delivery';
   }
 
   return 'log_entry';
+}
+
+/**
+ * Parses voice command to ADD A FLAT / CUSTOMER TO VENDOR ROUTE
+ * Example 1: "Add 405 flat number Nandaniya ji"
+ * Example 2: "फ्लैट 405 नंदानिया जी को जोड़ो"
+ * Example 3: "Add 405 flat number Nandaniya ji, daily 2 litres"
+ *
+ * CRITICAL RULE: Unless user explicitly commands contingencies/quantities,
+ * do NOT invent or auto-add any daily delivery quantity!
+ */
+export function parseAddCustomer(rawTranscript: string): ParseResult {
+  const text = rawTranscript.trim();
+
+  // 1. Extract Flat Number (e.g. 405, Flat 405, 405 flat number, फ्लैट ४०५, B-104)
+  let flatNumber = 'Flat 405';
+  const flatFullMatch = text.match(/(?:flat|फ्लैट)?\s*(?:number|no|नं|नंबर|नम्बर)?\s*(\d{3,4}|[a-zA-Z]-\d{3,4})\s*(?:flat|फ्लैट|number|no|नं|नंबर|नम्बर)?/i);
+  if (flatFullMatch) {
+    flatNumber = `Flat ${flatFullMatch[1].toUpperCase()}`;
+  }
+
+  // 2. Extract Customer Name (Unicode-safe for Hindi Devanagari and Latin)
+  let customerName = 'Resident';
+  const honorificMatch = text.match(/(?:^|\s)([a-zA-Z\u0900-\u097F]{2,30})\s*(ji|जी|bhai|भाई|bhaiya|भैया|uncle|अंकल|aunty|आंटी|saheb|साहब|sir|सर)(?:\s|$|[,\.!?])/i);
+  if (honorificMatch) {
+    const rawName = honorificMatch[1].trim();
+    const honorific = honorificMatch[2].trim();
+    const isDevanagari = Boolean(rawName.match(/[\u0900-\u097F]/));
+    if (isDevanagari) {
+      customerName = `${rawName} ${honorific}`;
+    } else {
+      const capName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+      const capHon = honorific.charAt(0).toUpperCase() + honorific.slice(1);
+      customerName = `${capName} ${capHon}`;
+    }
+  } else {
+    // Stopwords filter fallback
+    const stopWords = new Set([
+      "add", "naya", "new", "jodo", "jodein", "jodna", "karo", "karna", "ko", "mein", "me", "ka", "ki", "ke", 
+      "par", "customer", "grahak", "flat", "number", "no", "फ्लैट", "ग्राहक", "जोड़ो", "जोड़ो", "जोड़ें", "ऐड", 
+      "नया", "करो", "को", "में", "का", "की", "के", "पर", "daily", "quantity", "litres", "litre", "लीटर", "can", "cans"
+    ]);
+    const tokens = text.replace(/[,;:\.!\?]/g, "").split(/\s+/);
+    const remaining = tokens.filter(tok => {
+      const lower = tok.toLowerCase();
+      if (stopWords.has(lower)) return false;
+      if (lower.match(/^\d+$/)) return false;
+      if (lower.match(/^[a-z]-\d+$/i)) return false;
+      return tok.length >= 2;
+    });
+    if (remaining.length > 0) {
+      customerName = remaining.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
+  }
+
+  // 3. Extract Contingencies / Quantities ONLY if explicitly spoken
+  // e.g. "daily 2 litre", "roz ka dedh litre", "regular 2L"
+  let dailyQuantity: number | undefined = undefined;
+  const dailyMatch = text.match(/(?:daily|regular|roz|har roz|roz ka|प्रतिदिन|रोज़|रोज|डेली)\s*(?:quantity|supply)?\s*([a-zA-Z0-9\.\u0900-\u097F]+(?:\s+[a-zA-Z0-9\.\u0900-\u097F]+)?)/i);
+  if (dailyMatch) {
+    const extracted = extractNumber(dailyMatch[1]);
+    if (extracted !== null && extracted > 0) {
+      dailyQuantity = extracted;
+    }
+  }
+
+  // 4. Extract Phone Number (10 digits) if provided
+  const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+  const phone = phoneMatch ? phoneMatch[1] : undefined;
+
+  const isHindiScript = Boolean(customerName.match(/[\u0900-\u097F]/));
+  const spokenResponseHindi = isHindiScript
+    ? (dailyQuantity 
+        ? `${flatNumber} ${customerName} (रोज़ ${dailyQuantity}L) आपके डिलीवरी रूट में जुड़ गए हैं!` 
+        : `${flatNumber} ${customerName} को आपके डिलीवरी रूट में जोड़ दिया गया है!`)
+    : (dailyQuantity 
+        ? `${flatNumber} ${customerName} (Daily ${dailyQuantity}L) aapke route mein jud gaye hain!` 
+        : `${flatNumber} ${customerName} aapke delivery route mein jud gaye hain!`);
+
+  const spokenResponseEnglish = dailyQuantity
+    ? `Added ${flatNumber} ${customerName} (Daily ${dailyQuantity}L) to your delivery route!`
+    : `Added ${flatNumber} ${customerName} to your delivery route!`;
+
+  const newCustomer: NewCustomerPayload = {
+    flatNumber,
+    customerName,
+    dailyQuantity,
+    phone
+  };
+
+  return {
+    success: true,
+    intent: 'add_customer',
+    transcript: rawTranscript,
+    items: [],
+    newCustomer,
+    method: 'rule_based',
+    spokenResponseHindi,
+    spokenResponseEnglish
+  };
 }
 
 /**
@@ -129,7 +253,7 @@ export function parseVendorDelivery(rawTranscript: string): ParseResult {
     const flatMatch = seg.match(/(?:flat|फ्लैट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
 
     // 2. Customer name matching (e.g. Gupta ji, गुप्ता जी, Sharma ji, शर्मा जी)
-    const nameMatch = seg.match(/\b([a-zA-Z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)/i);
+    const nameMatch = seg.match(/(?:^|\s)([a-zA-Z\u0900-\u097F]{2,30})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)(?:\s|$|[,\.!?])/i);
 
     const isAbsent = Boolean(segLower.match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent)\b/i));
     const isExtra = Boolean(segLower.match(/\b(?:extra|एक्स्ट्रा)\b/i));
@@ -166,7 +290,7 @@ export function parseVendorDelivery(rawTranscript: string): ParseResult {
     const isAbsent = Boolean(rawTranscript.toLowerCase().match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent)\b/i));
     const isExtra = Boolean(rawTranscript.toLowerCase().match(/\b(?:extra|एक्स्ट्रा)\b/i));
     const isWater = Boolean(rawTranscript.toLowerCase().match(/\b(?:water|can|paani|जार|कैन|पानी)\b/i));
-    const nameMatch = rawTranscript.match(/\b([a-zA-Z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)/i);
+    const nameMatch = rawTranscript.match(/(?:^|\s)([a-zA-Z\u0900-\u097F]{2,30})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)(?:\s|$|[,\.!?])/i);
     const flatMatch = rawTranscript.match(/(?:flat|फ्लैट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
 
     if (nameMatch || flatMatch) {
@@ -356,6 +480,10 @@ export function parseRuleBased(rawTranscript: string): ParseResult {
 
   if (intent === 'add_vendor') {
     return parseAddVendor(rawTranscript);
+  }
+
+  if (intent === 'add_customer') {
+    return parseAddCustomer(rawTranscript);
   }
 
   if (intent === 'query_hisaab') {

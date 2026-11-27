@@ -51,6 +51,7 @@ interface VendorDashboardProps {
   customers: Customer[];
   isProcessing: boolean;
   vendorBatchNotice: any[] | null;
+  addedCustomerNotice?: any | null;
   onTranscript: (text: string) => void;
   onRefreshCustomers: () => void;
   onOpenOnboarding: () => void;
@@ -63,6 +64,7 @@ export default function VendorDashboard({
   customers,
   isProcessing,
   vendorBatchNotice,
+  addedCustomerNotice,
   onTranscript,
   onRefreshCustomers,
   onOpenOnboarding,
@@ -78,6 +80,8 @@ export default function VendorDashboard({
   const [statusLog, setStatusLog] = useState<{ [flat: string]: string }>({});
 
   const vendorPresets = [
+    { label: '➕ Add 405 Nandaniya Ji', text: 'Add 405 flat number Nandaniya ji' },
+    { label: '➕ 405 नंदानिया जी (Hindi)', text: 'फ्लैट 405 नंदानिया जी को जोड़ो' },
     { label: '🥛 Gupta Ji 2L Extra', text: 'Gupta ji को 2 L दूध extra दिया आज' },
     { label: '🛵 Route Run (Flats 402, 501, 104)', text: 'Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti' },
     { label: '🥛 Flat 302 Extra Milk', text: 'Flat 302 mein do litre doodh diya' },
@@ -141,7 +145,7 @@ export default function VendorDashboard({
           customerName: newName || 'Resident',
           phone: newPhone || '9876543210',
           dailyQuantity: parseFloat(newQty) || 1.0,
-          pendingBalance: (parseFloat(newQty) || 1.0) * 68 * 15
+          pendingBalance: 0
         })
       });
 
@@ -296,6 +300,34 @@ export default function VendorDashboard({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* New Customer / Flat Added Celebration Notice */}
+          {addedCustomerNotice && (
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 rounded-3xl p-4 shadow-xs animate-fade-in">
+              <div className="flex items-center gap-2 text-emerald-950 font-black text-xs mb-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Naya Flat Delivery Route Mein Jud Gaya!</span>
+              </div>
+              <div className="text-xs text-emerald-900 font-semibold mt-1">
+                <span className="font-black text-emerald-950 px-2 py-0.5 bg-emerald-100 rounded-md font-mono mr-1.5">
+                  {addedCustomerNotice.flatNumber}
+                </span>
+                <span>{addedCustomerNotice.customerName}</span>
+                {addedCustomerNotice.dailyQuantity ? (
+                  <span className="text-slate-500 text-[11px] ml-1.5">
+                    (Daily Supply: <strong>{addedCustomerNotice.dailyQuantity} L</strong>)
+                  </span>
+                ) : (
+                  <span className="text-slate-500 text-[11px] ml-1.5">
+                    (No daily quantity forced • Balance ₹0)
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-emerald-700 font-medium mt-1.5">
+                Aap jab delivery denge, tabhi hisaab aur balance update hoga.
+              </p>
             </div>
           )}
 
