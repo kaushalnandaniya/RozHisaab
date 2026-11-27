@@ -20,12 +20,19 @@ export default function VendorsPage() {
   const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('rozhisaab_role') as 'household' | 'vendor' | null;
+      if (cached) setRole(cached);
+    }
     fetchProfile();
     fetchVendors();
     fetchCustomers();
 
     const handleRoleChange = (e: any) => {
       setRole(e.detail);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rozhisaab_role', e.detail);
+      }
     };
 
     window.addEventListener('rozhisaab-role-changed', handleRoleChange);

@@ -73,7 +73,7 @@ const CATEGORY_META: Record<string, { icon: string; color: string; defaultUnit: 
  * - vendor_delivery: "Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti"
  * - log_entry: normal doorstep logging
  */
-export function detectIntent(text: string): UserIntent {
+export function detectIntent(text: string, role: 'household' | 'vendor' = 'household'): UserIntent {
   const devanagariDigits = '०१२३४५६७८९';
   const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯';
   const normalizedText = text
@@ -167,6 +167,13 @@ export function detectIntent(text: string): UserIntent {
     lower.match(/\b(?:litre|liter|लीटर|can|cans|कैन|जार|l|dedh|dhaai|sawa|paune|aadha|દોઢ|અઢી|પોણા|સવા|દૂધ|पाणी|दीड|अडीच|पावणे|सव्वा)\b/i) ||
     lower.match(/\b\d+(?:\.\d+)?\s*(?:litre|liter|लीटर|can|cans|l|લિટર|લીટર)\b/i)
   );
+
+  // In VENDOR mode: Any flat, customer, or route quantity is strictly a vendor_delivery
+  if (role === 'vendor') {
+    if (hasFlatReference || hasCustomerReference || hasDeliveryVerb || hasQuantityWord || lower.includes('extra') || lower.includes('chhutti') || lower.includes('रजा') || lower.includes('सुट्टी')) {
+      return 'vendor_delivery';
+    }
+  }
 
   if ((hasFlatReference || hasCustomerReference) && (hasDeliveryVerb || hasQuantityWord || lower.includes('doodh') || lower.includes('दूध') || lower.includes('દૂધ') || lower.includes('extra') || lower.includes('एक्स्ट्रा'))) {
     return 'vendor_delivery';
@@ -518,8 +525,8 @@ export function parseQueryHisaab(rawTranscript: string): ParseResult {
 /**
  * Master parser: Routes between add_vendor, query_hisaab, and log_entry
  */
-export function parseRuleBased(rawTranscript: string): ParseResult {
-  const intent = detectIntent(rawTranscript);
+export function parseRuleBased(rawTranscript: string, role: 'household' | 'vendor' = 'household'): ParseResult {
+  const intent = detectIntent(rawTranscript, role);
 
   if (intent === 'undo_last') {
     return {

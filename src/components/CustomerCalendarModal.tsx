@@ -42,6 +42,7 @@ interface Customer {
 interface CustomerCalendarModalProps {
   customer: Customer;
   businessName: string;
+  vendorCategory?: string;
   routeName: string;
   merchantUpiPhone?: string;
   merchantRate?: number;
@@ -53,6 +54,7 @@ interface CustomerCalendarModalProps {
 export default function CustomerCalendarModal({
   customer,
   businessName,
+  vendorCategory = 'milk',
   routeName,
   merchantUpiPhone = '9876543210',
   merchantRate = 68,
@@ -125,10 +127,17 @@ export default function CustomerCalendarModal({
     }
   };
 
+  const isWater = vendorCategory === 'water';
+  const isTiffin = vendorCategory === 'tiffin';
+  const isLaundry = vendorCategory === 'laundry';
+  const catIcon = isWater ? '💧' : (isTiffin ? '🍱' : (isLaundry ? '👔' : '🥛'));
+  const unitLabel = isWater ? 'Cans' : (isTiffin ? 'Meals' : (isLaundry ? 'Pieces' : 'L'));
+  const slipTitle = isWater ? 'पानी व जार का पर्चा (Daily Water Slip)' : (isTiffin ? 'टिफिन पर्चा (Daily Meal Slip)' : (isLaundry ? 'कपड़े व प्रेस पर्चा (Ironing Slip)' : 'दूध का पर्चा (Daily Milk Delivery Calendar)'));
+
   const generateMonthlyWhatsAppCard = () => {
     let lines: string[] = [];
     lines.push(`🙏 *Namaste ${customer.customerName}*,`);
-    lines.push(`*${businessName} - ${monthName} ${currentYear} Milk Delivery Card* 📋`);
+    lines.push(`*${businessName} - ${monthName} ${currentYear} Delivery Slip* 📋`);
     lines.push(`${customer.flatNumber} • ${routeName}`);
     lines.push(`-----------------------------------`);
     lines.push(`📅 *Date-wise Daily Deliveries:*`);
@@ -140,17 +149,17 @@ export default function CustomerCalendarModal({
         if (entry.action === 'absent') {
           lines.push(`${dayStr} Nov: 🏖️ Chhutti / Absent`);
         } else if (entry.action === 'extra' || entry.quantity > customer.dailyQuantity) {
-          lines.push(`${dayStr} Nov: 🥛 *${entry.quantity}L (Extra)*`);
+          lines.push(`${dayStr} Nov: ${catIcon} *${entry.quantity} ${unitLabel} (Extra)*`);
         } else {
-          lines.push(`${dayStr} Nov: 🥛 ${entry.quantity}L`);
+          lines.push(`${dayStr} Nov: ${catIcon} ${entry.quantity} ${unitLabel}`);
         }
       } else {
-        lines.push(`${dayStr} Nov: 🥛 ${customer.dailyQuantity}L`);
+        lines.push(`${dayStr} Nov: ${catIcon} ${customer.dailyQuantity} ${unitLabel}`);
       }
     }
 
     lines.push(`-----------------------------------`);
-    lines.push(`🥛 *Total Milk Delivered:* ${totalLitres.toFixed(1)} Litres`);
+    lines.push(`${catIcon} *Total Delivered:* ${totalLitres.toFixed(1)} ${unitLabel}`);
     lines.push(`💰 *Total Balance Payable:* ₹${customer.pendingBalance.toFixed(0)}`);
     lines.push(`\n📲 *Pay via UPI:* upi://pay?pa=${merchantUpiPhone}@upi&pn=${encodeURIComponent(businessName)}&am=${customer.pendingBalance.toFixed(0)}`);
     lines.push(`\n_Hisaab generated hands-free via RozHisaab_`);
@@ -169,7 +178,7 @@ export default function CustomerCalendarModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-3xl p-2 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
-                🥛
+                {catIcon}
               </span>
               <div>
                 <div className="flex items-center gap-2">
@@ -179,7 +188,7 @@ export default function CustomerCalendarModal({
                   <h2 className="text-lg sm:text-xl font-black text-white">{customer.customerName}</h2>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                  दूध का पर्चा (Daily Milk Delivery Calendar) • {monthName} {currentYear}
+                  {slipTitle} • {monthName} {currentYear}
                 </p>
               </div>
             </div>

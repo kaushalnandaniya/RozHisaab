@@ -30,6 +30,7 @@ export default function SettlePage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
+  const [vendorCategory, setVendorCategory] = useState('milk');
   const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
   const [merchantRate, setMerchantRate] = useState(68);
   const [merchantUpiPhone, setMerchantUpiPhone] = useState('9876543210');
@@ -45,12 +46,19 @@ export default function SettlePage() {
   const [paidFlats, setPaidFlats] = useState<string[]>([]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('rozhisaab_role') as 'household' | 'vendor' | null;
+      if (cached) setRole(cached);
+    }
     fetchProfile();
     fetchVendors();
     fetchCustomers();
 
     const handleRoleChange = (e: any) => {
       setRole(e.detail);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rozhisaab_role', e.detail);
+      }
     };
     window.addEventListener('rozhisaab-role-changed', handleRoleChange);
     return () => {
@@ -64,7 +72,11 @@ export default function SettlePage() {
       const data = await res.json();
       if (data.user) {
         setRole(data.user.role || 'household');
+        if (typeof window !== 'undefined' && data.user.role) {
+          localStorage.setItem('rozhisaab_role', data.user.role);
+        }
         if (data.user.vendorBusinessName) setVendorBusinessName(data.user.vendorBusinessName);
+        if (data.user.vendorCategory) setVendorCategory(data.user.vendorCategory);
         if (data.user.vendorRouteName) setVendorRouteName(data.user.vendorRouteName);
         if (data.user.merchantRate) setMerchantRate(data.user.merchantRate);
         if (data.user.merchantUpiPhone) setMerchantUpiPhone(data.user.merchantUpiPhone);
@@ -154,7 +166,14 @@ export default function SettlePage() {
 
   const getCustomerInvoiceText = (c: Customer) => {
     const month = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-    return `🙏 *Namaste ${c.customerName}*,\n\n*${vendorBusinessName} - ${month} Bill* 📋\n${c.flatNumber} (${vendorRouteName})\n-----------------------------------\n🥛 *Daily Delivery:* ${c.dailyQuantity} L/day (Rate: ₹${merchantRate}/L)\n📅 *Days Delivered:* 30 days\n💰 *Total Amount Payable:* ₹${c.pendingBalance.toFixed(0)}\n\n📲 *Pay via UPI:* upi://pay?pa=${merchantUpiPhone}@upi&pn=${encodeURIComponent(vendorBusinessName)}&am=${c.pendingBalance.toFixed(0)}\n\n_Generated hands-free via RozHisaab Vyapari Console_`;
+    const isWater = vendorCategory === 'water';
+    const isLaundry = vendorCategory === 'laundry';
+    const isTiffin = vendorCategory === 'tiffin';
+    const unitLabel = isWater ? 'Cans' : (isTiffin ? 'Meals' : (isLaundry ? 'Pieces' : 'L'));
+    const icon = isWater ? '💧' : (isTiffin ? '🍱' : (isLaundry ? '👔' : '🥛'));
+    const itemDesc = isWater ? '20L Water Can' : (isTiffin ? 'Tiffin Meal' : (isLaundry ? 'Ironing' : 'Fresh Milk'));
+
+    return `🙏 *Namaste ${c.customerName}*,\n\n*${vendorBusinessName} - ${month} Bill* 📋\n${c.flatNumber} (${vendorRouteName})\n-----------------------------------\n${icon} *Daily ${itemDesc}:* ${c.dailyQuantity} ${unitLabel}/day (Rate: ₹${merchantRate}/${unitLabel})\n📅 *Days Delivered:* 30 days\n💰 *Total Amount Payable:* ₹${c.pendingBalance.toFixed(0)}\n\n📲 *Pay via UPI:* upi://pay?pa=${merchantUpiPhone}@upi&pn=${encodeURIComponent(vendorBusinessName)}&am=${c.pendingBalance.toFixed(0)}\n\n_Generated hands-free via RozHisaab Vyapari Console_`;
   };
 
   const getCustomerWhatsAppShareUrl = (c: Customer) => {

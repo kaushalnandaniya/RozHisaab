@@ -108,6 +108,17 @@ async function runFullAuditSuite() {
   const t13b = parseRuleBased('फ्लॅट १०४ आज सुट्टी आहे');
   assert(Boolean(t13b.intent === 'vendor_delivery' || t13b.intent === 'log_entry'), '1.13b Marathi leave "सुट्टी" recognized');
 
+  // 1.14 Persona/Role-Aware Intent Isolation (Zero Clash Guarantee)
+  const t14Vendor = parseRuleBased('Gupta ji ko 2 litre doodh diya', 'vendor');
+  assert(t14Vendor.intent === 'vendor_delivery', '1.14a Vendor mode correctly biases route delivery to vendor_delivery');
+
+  const t14Household = parseRuleBased('Aaj 2 litre doodh liya', 'household');
+  assert(t14Household.intent === 'log_entry', '1.14b Household mode correctly routes doorstep purchase to log_entry');
+
+  const t14WaterVendor = parseRuleBased('Flat 402 do can paani', 'vendor');
+  assert(t14WaterVendor.intent === 'vendor_delivery', '1.14c Water vendor route delivery detected as vendor_delivery');
+  assert(Boolean(t14WaterVendor.deliveries?.[0]?.unit === 'cans'), '1.14c Water vendor delivery unit set to cans');
+
   // -------------------------------------------------------------
   // TEST GROUP 2: DATABASE ENTITY PERSISTENCE & API LOGIC
   // -------------------------------------------------------------

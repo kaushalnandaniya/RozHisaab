@@ -83,13 +83,19 @@ export default function VendorDashboard({
   const [newQty, setNewQty] = useState('1.5');
   const [statusLog, setStatusLog] = useState<{ [flat: string]: string }>({});
 
+  const isWater = vendorCategory === 'water';
+  const isTiffin = vendorCategory === 'tiffin';
+  const isLaundry = vendorCategory === 'laundry';
+  const itemIcon = isWater ? '💧' : (isTiffin ? '🍱' : (isLaundry ? '👔' : '🥛'));
+  const unitWord = isWater ? 'can paani' : (isTiffin ? 'tiffin' : (isLaundry ? 'kapde' : 'L doodh'));
+
   const vendorPresets = [
     { label: '➕ Add 405 Nandaniya Ji', text: 'Add 405 flat number Nandaniya ji' },
     { label: '➕ 405 नंदानिया जी (Hindi)', text: 'फ्लैट 405 नंदानिया जी को जोड़ो' },
-    { label: '🥛 Gupta Ji 2L Extra', text: 'Gupta ji को 2 L दूध extra दिया आज' },
-    { label: '🛵 Route Run (Flats 402, 501, 104)', text: 'Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti' },
+    { label: `${itemIcon} Gupta Ji 2 Extra`, text: `Gupta ji ko 2 ${unitWord} extra diya aaj` },
+    { label: '🛵 Route Run (Flats 402, 501, 104)', text: isWater ? 'Flat 402 do can, Flat 501 ek can, Flat 104 chhutti' : 'Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti' },
     { label: '↩️ Undo Last Entry (Voice)', text: 'Arrey galat ho gaya, cancel karo' },
-    { label: '🥛 Flat 302 Extra Milk', text: 'Flat 302 mein do litre doodh diya' },
+    { label: `${itemIcon} Flat 302 Regular`, text: `Flat 302 mein 2 ${unitWord} diya` },
     { label: '🏖️ Flat 104 Patel Ji Chhutti', text: 'Flat 104 Patel ji aaj chhutti pe hain' }
   ];
 
@@ -101,13 +107,13 @@ export default function VendorDashboard({
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
       setStatusLog(prev => ({
         ...prev,
-        [customer.flatNumber]: isAbsent ? 'Absent' : `Delivered ${qty}L`
+        [customer.flatNumber]: isAbsent ? 'Absent' : `Delivered ${qty}${isWater ? ' cans' : 'L'}`
       }));
 
       // Send to voice transcript handler
       const phrase = isAbsent 
         ? `${customer.customerName || customer.flatNumber} chhutti` 
-        : `${customer.customerName || customer.flatNumber} ko ${qty} litre doodh diya`;
+        : `${customer.customerName || customer.flatNumber} ko ${qty} ${unitWord} diya`;
       await onTranscript(phrase);
     } catch (e) {
       console.error(e);
@@ -519,6 +525,7 @@ export default function VendorDashboard({
         <CustomerCalendarModal
           customer={selectedCalendarCustomer}
           businessName={businessName}
+          vendorCategory={vendorCategory}
           routeName={routeName}
           merchantUpiPhone={merchantUpiPhone}
           merchantRate={merchantRate}

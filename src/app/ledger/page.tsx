@@ -52,6 +52,7 @@ export default function LedgerPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
+  const [vendorCategory, setVendorCategory] = useState('milk');
   const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
   const [merchantUpiPhone, setMerchantUpiPhone] = useState('9876543210');
   const [merchantRate, setMerchantRate] = useState(68);
@@ -60,12 +61,19 @@ export default function LedgerPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('rozhisaab_role') as 'household' | 'vendor' | null;
+      if (cached) setRole(cached);
+    }
     fetchProfile();
     fetchVendors();
     fetchCustomers();
 
     const handleRoleChange = (e: any) => {
       setRole(e.detail);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rozhisaab_role', e.detail);
+      }
     };
     window.addEventListener('rozhisaab-role-changed', handleRoleChange);
     return () => {
@@ -80,6 +88,7 @@ export default function LedgerPage() {
       if (data.user) {
         setRole(data.user.role || 'household');
         if (data.user.vendorBusinessName) setVendorBusinessName(data.user.vendorBusinessName);
+        if (data.user.vendorCategory) setVendorCategory(data.user.vendorCategory);
         if (data.user.vendorRouteName) setVendorRouteName(data.user.vendorRouteName);
         if (data.user.merchantUpiPhone) setMerchantUpiPhone(data.user.merchantUpiPhone);
         if (data.user.merchantRate) setMerchantRate(data.user.merchantRate);
@@ -427,7 +436,7 @@ export default function LedgerPage() {
                     </div>
                     <div className="flex items-center justify-between py-1 border-b border-slate-50 text-slate-600">
                       <span>Unit Rate:</span>
-                      <span className="font-bold text-slate-900">₹68 / Litre</span>
+                      <span className="font-bold text-slate-900">₹{merchantRate} / {vendorCategory === 'water' ? 'Can' : (vendorCategory === 'tiffin' ? 'Meal' : (vendorCategory === 'laundry' ? 'Piece' : 'Litre'))}</span>
                     </div>
                     <div className="flex items-center justify-between py-1 text-slate-600">
                       <span>Phone / WhatsApp:</span>
@@ -441,7 +450,7 @@ export default function LedgerPage() {
                     onClick={() => setSelectedCalendarCustomer(c)}
                     className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95"
                   >
-                    <span>📅 दूध का पर्चा</span>
+                    <span>📅 {vendorCategory === 'water' ? 'पानी पर्चा' : (vendorCategory === 'tiffin' ? 'टिफिन पर्चा' : 'दूध का पर्चा')}</span>
                   </button>
                   <a
                     href={`/settle`}
@@ -455,11 +464,12 @@ export default function LedgerPage() {
           </div>
         )}
 
-        {/* Customer 30-Day Milk Delivery Calendar Modal */}
+        {/* Customer 30-Day Delivery Calendar Modal */}
         {selectedCalendarCustomer && (
           <CustomerCalendarModal
             customer={selectedCalendarCustomer}
             businessName={vendorBusinessName}
+            vendorCategory={vendorCategory}
             routeName={vendorRouteName}
             merchantUpiPhone={merchantUpiPhone}
             merchantRate={merchantRate}

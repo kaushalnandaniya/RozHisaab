@@ -30,10 +30,17 @@ export default function Navbar() {
   const [showMemberModal, setShowMemberModal] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('rozhisaab_role') as 'household' | 'vendor' | null;
+      if (cached) setRole(cached);
+    }
     fetchProfile();
 
     const handleRoleChange = (e: any) => {
       setRole(e.detail);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rozhisaab_role', e.detail);
+      }
     };
     const handleMemberChange = (e: any) => {
       setActiveMember(e.detail);
@@ -66,6 +73,9 @@ export default function Navbar() {
 
   const handleRoleToggle = async (newRole: 'household' | 'vendor') => {
     setRole(newRole);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rozhisaab_role', newRole);
+    }
     playSuccessChime();
     try {
       await fetch('/api/profile', {

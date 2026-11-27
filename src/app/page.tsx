@@ -98,6 +98,13 @@ export default function HomePage() {
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     setSelectedDate(today);
+
+    // Immediate role restore from cache to prevent UI flash
+    if (typeof window !== 'undefined') {
+      const cachedRole = localStorage.getItem('rozhisaab_role') as 'household' | 'vendor' | null;
+      if (cachedRole) setRole(cachedRole);
+    }
+
     fetchProfile();
     fetchEntries(today);
     fetchVendors();
@@ -113,6 +120,9 @@ export default function HomePage() {
 
     const handleRoleChange = (e: any) => {
       setRole(e.detail);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rozhisaab_role', e.detail);
+      }
     };
     const handleMemberChange = (e: any) => {
       setActiveMember(e.detail);
@@ -138,6 +148,9 @@ export default function HomePage() {
       const data = await res.json();
       if (data.user) {
         setRole(data.user.role || 'household');
+        if (typeof window !== 'undefined' && data.user.role) {
+          localStorage.setItem('rozhisaab_role', data.user.role);
+        }
         setActiveMember(data.user.activeMemberName || 'Kaushal');
         setHouseholdCode(data.user.householdCode || 'SHARMA-402');
         setVendorBusinessName(data.user.vendorBusinessName || 'Raju Doodh Dairy');
@@ -218,7 +231,10 @@ export default function HomePage() {
       const parseRes = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript })
+        body: JSON.stringify({ 
+          transcript,
+          role 
+        })
       });
       const parseData = await parseRes.json();
 

@@ -8,18 +8,23 @@ import { ParseResult } from '@/types';
  * 3. If NOT available, gracefully falls back to the local deterministic `parseRuleBased` engine.
  * The user NEVER gets a blocking error if keys are missing!
  */
-export async function parseTranscript(transcript: string): Promise<ParseResult> {
+export async function parseTranscript(transcript: string, role: 'household' | 'vendor' = 'household'): Promise<ParseResult> {
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
 
   if (!geminiKey) {
-    const result = parseRuleBased(transcript);
+    const result = parseRuleBased(transcript, role);
     result.keyMissingNotice = 'Using offline rule-based parser. Add GEMINI_API_KEY for advanced LLM parsing.';
     return result;
   }
 
   try {
     const prompt = `You are RozHisaab, an Indian doorstep ledger and route assistant.
-Analyze the user's spoken sentence in Hindi, Hinglish, or English and extract the exact intent and parameters.
+The active application mode is: "${role === 'vendor' ? 'VENDOR / APARTMENT ROUTE DELIVERY CONSOLE' : 'HOUSEHOLD / FAMILY DOORSTEP LEDGER'}".
+${role === 'vendor' 
+  ? 'CRITICAL ROLE CONTEXT: The user is a delivery vendor (e.g. milkman, water supplier) on an apartment route. Prioritize "vendor_delivery" (route entries/leaves), "add_customer" (adding flats), and "undo_last". NEVER classify deliveries to flats as household items.'
+  : 'CRITICAL ROLE CONTEXT: The user is a household resident. Prioritize "log_entry" (doorstep items received like milk, water, laundry, maid), "add_vendor" (adding new service provider), and "query_hisaab".'
+}
+Analyze the user's spoken sentence in Hindi, Hinglish, Gujarati, Marathi, or English and extract the exact intent and parameters.
 
 Available Intents:
 1. "add_customer": The user is adding a flat or resident to the vendor's delivery route.

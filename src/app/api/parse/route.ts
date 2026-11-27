@@ -4,81 +4,87 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
-    const { transcript } = await req.json();
+    const { transcript, role = 'household' } = await req.json();
     if (!transcript || typeof transcript !== 'string') {
       return NextResponse.json({ error: 'Missing or invalid transcript' }, { status: 400 });
     }
 
-    const result = await parseTranscript(transcript);
+    const result = await parseTranscript(transcript, role);
 
-    // Intent 0: CONVERSATIONAL VOICE UNDO & ROLLBACK
+    // Intent 0: CONVERSATIONAL VOICE UNDO & ROLLBACK (Persona-Isolated)
     if (result.intent === 'undo_last') {
       let user = await prisma.user.findFirst();
       if (!user) user = await prisma.user.create({ data: { name: 'Sharma Household' } });
 
-      // Check most recent CustomerDelivery (route delivery in vendor mode)
-      const lastDelivery = await prisma.customerDelivery.findFirst({
-        orderBy: { createdAt: 'desc' },
-        include: { customer: true }
-      });
-
-      // Check most recent Entry (doorstep log in household mode)
-      const lastEntry = await prisma.entry.findFirst({
-        orderBy: { createdAt: 'desc' },
-        include: { vendor: true }
-      });
-
-      const deliveryTime = lastDelivery ? new Date(lastDelivery.createdAt).getTime() : 0;
-      const entryTime = lastEntry ? new Date(lastEntry.createdAt).getTime() : 0;
-
-      if (deliveryTime > 0 && deliveryTime >= entryTime) {
-        // Rollback CustomerDelivery and restore customer's balance
-        const customer = lastDelivery!.customer;
-        const newBalance = Math.max(0, customer.pendingBalance - lastDelivery!.amount);
-        await prisma.customer.update({
-          where: { id: customer.id },
-          data: { pendingBalance: newBalance }
-        });
-        await prisma.customerDelivery.delete({
-          where: { id: lastDelivery!.id }
+      if (role === 'vendor') {
+        // VENDOR MODE: ONLY rollback CustomerDelivery (never touches household entries)
+        const lastDelivery = await prisma.customerDelivery.findFirst({
+          orderBy: { createdAt: 'desc' },
+          include: { customer: true }
         });
 
-        const spokenMsg = `पिछली डिलीवरी (${customer.customerName || customer.flatNumber} - ${lastDelivery!.quantity}L) रद्द कर दी गई है।`;
-        return NextResponse.json({
-          ...result,
-          undo: true,
-          undoneType: 'vendor_delivery',
-          spokenResponseHindi: spokenMsg,
-          message: `Undone delivery for ${customer.customerName} (${lastDelivery!.quantity}L). Restored balance: ₹${newBalance}`
-        });
-      } else if (entryTime > 0) {
-        // Rollback Household Entry
-        const vendor = lastEntry!.vendor;
-        if (vendor.category === 'water' && lastEntry!.action === 'received') {
-          await prisma.vendor.update({
-            where: { id: vendor.id },
-            data: { jarDepositBalance: Math.max(0, vendor.jarDepositBalance - lastEntry!.quantity) }
+        if (lastDelivery) {
+          const customer = lastDelivery.customer;
+          const newBalance = Math.max(0, customer.pendingBalance - lastDelivery.amount);
+          await prisma.customer.update({
+            where: { id: customer.id },
+            data: { pendingBalance: newBalance }
+          });
+          await prisma.customerDelivery.delete({
+            where: { id: lastDelivery.id }
+          });
+
+          const spokenMsg = `पिछली डिलीवरी (${customer.customerName || customer.flatNumber} - ${lastDelivery.quantity} ${lastDelivery.unit}) रद्द कर दी गई है।`;
+          return NextResponse.json({
+            ...result,
+            undo: true,
+            undoneType: 'vendor_delivery',
+            spokenResponseHindi: spokenMsg,
+            message: `Undone route delivery for ${customer.customerName} (${lastDelivery.quantity} ${lastDelivery.unit}). Restored balance: ₹${newBalance}`
+          });
+        } else {
+          return NextResponse.json({
+            ...result,
+            undo: false,
+            spokenResponseHindi: 'रद्द करने के लिए कोई हालिया रूट डिलीवरी नहीं मिली।',
+            message: 'No recent route delivery found to undo.'
           });
         }
-        await prisma.entry.delete({
-          where: { id: lastEntry!.id }
+      } else {
+        // HOUSEHOLD MODE: ONLY rollback household Entry (never touches route customer deliveries)
+        const lastEntry = await prisma.entry.findFirst({
+          orderBy: { createdAt: 'desc' },
+          include: { vendor: true }
         });
 
-        const spokenMsg = `पिछली एंट्री (${vendor.displayName}: ${lastEntry!.quantity} ${lastEntry!.unit}) रद्द कर दी गई है।`;
-        return NextResponse.json({
-          ...result,
-          undo: true,
-          undoneType: 'household_entry',
-          spokenResponseHindi: spokenMsg,
-          message: `Undone entry for ${vendor.displayName} (${lastEntry!.quantity} ${lastEntry!.unit}).`
-        });
-      } else {
-        return NextResponse.json({
-          ...result,
-          undo: false,
-          spokenResponseHindi: 'रद्द करने के लिए कोई हालिया एंट्री नहीं मिली।',
-          message: 'No recent entry found to undo.'
-        });
+        if (lastEntry) {
+          const vendor = lastEntry.vendor;
+          if (vendor.category === 'water' && lastEntry.action === 'received') {
+            await prisma.vendor.update({
+              where: { id: vendor.id },
+              data: { jarDepositBalance: Math.max(0, vendor.jarDepositBalance - lastEntry.quantity) }
+            });
+          }
+          await prisma.entry.delete({
+            where: { id: lastEntry.id }
+          });
+
+          const spokenMsg = `पिछली एंट्री (${vendor.displayName}: ${lastEntry.quantity} ${lastEntry.unit}) रद्द कर दी गई है।`;
+          return NextResponse.json({
+            ...result,
+            undo: true,
+            undoneType: 'household_entry',
+            spokenResponseHindi: spokenMsg,
+            message: `Undone household entry for ${vendor.displayName} (${lastEntry.quantity} ${lastEntry.unit}).`
+          });
+        } else {
+          return NextResponse.json({
+            ...result,
+            undo: false,
+            spokenResponseHindi: 'रद्द करने के लिए कोई हालिया घरेलू एंट्री नहीं मिली।',
+            message: 'No recent household entry found to undo.'
+          });
+        }
       }
     }
 
@@ -275,7 +281,8 @@ export async function POST(req: NextRequest) {
         }
 
         if (customer) {
-          const unitRate = 68; // ₹68 per litre / unit
+          const unitRate = user?.merchantRate || 68;
+          const defaultUnit = user?.vendorCategory === 'water' ? 'cans' : (user?.vendorCategory === 'tiffin' ? 'meals' : (user?.vendorCategory === 'laundry' ? 'pieces' : 'litres'));
           const deliveryAmount = del.action === 'absent' ? 0 : (del.quantity * unitRate);
 
           // 1. Update customer's pending balance
@@ -292,10 +299,10 @@ export async function POST(req: NextRequest) {
               customerId: customer.id,
               deliveryDate: today,
               quantity: del.quantity,
-              unit: del.unit || 'litres',
+              unit: del.unit || defaultUnit,
               action: del.action,
               amount: deliveryAmount,
-              notes: del.isExtra ? 'Extra milk delivered' : (del.action === 'absent' ? 'Chhutti' : 'Regular delivery')
+              notes: del.isExtra ? `Extra ${defaultUnit} delivered` : (del.action === 'absent' ? 'Chhutti' : 'Regular delivery')
             }
           });
 
