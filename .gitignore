@@ -1,0 +1,30 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js
+/.next/
+/out/
+/build
+
+# Misc & OS
+.DS_Store
+*.pem
+
+# Environment files
+.env
+.env*.local
+!.env.example
+
+# Local SQLite databases
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+
+# Vercel & TypeScript
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+AGENTS.md

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  rozhisaab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rozhisaab-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/dev.db
+      # Optional API keys for enhanced cloud AI (app runs 100% fine without these via built-in Web Speech + offline rules)
+      # - GEMINI_API_KEY=
+      # - GROQ_API_KEY=
+      # - WISPR_API_KEY=
+    volumes:
+      - rozhisaab-data:/app/prisma
+    restart: unless-stopped
+
+volumes:
+  rozhisaab-data:

@@ -1,0 +1,49 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String   @default("Home")
+  language  String   @default("hi")
+  createdAt DateTime @default(now())
+  vendors   Vendor[]
+  entries   Entry[]
+}
+
+model Vendor {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category          String   // milk, water, laundry, maid, tiffin, newspaper, custom
+  displayName       String   // e.g. Doodh Wala, Paani Wala
+  unit              String   // litres, cans, pieces, day, meals, copies
+  unitRate          Float    @default(0) // ₹ per unit
+  jarDepositBalance Int      @default(0) // empty jars tally for water
+  vendorPhone       String?
+  icon              String?  @default("🥛")
+  color             String?  @default("#3B82F6")
+  createdAt         DateTime @default(now())
+  entries           Entry[]
+}
+
+model Entry {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorId         String
+  vendor           Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  entryDate        String   // YYYY-MM-DD
+  quantity         Float
+  unit             String
+  action           String   // received, given, absent, advance, returned, skipped
+  metadata         String?  // JSON stringified for items, notes, emptyReturned
+  amountCalculated Float    @default(0)
+  rawTranscript    String?
+  createdAt        DateTime @default(now())
+}
