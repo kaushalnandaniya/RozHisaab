@@ -8,7 +8,8 @@ import HouseholdDashboard from '@/components/HouseholdDashboard';
 import VendorDashboard from '@/components/VendorDashboard';
 import RoleOnboardingModal from '@/components/RoleOnboardingModal';
 import { speakHindi } from '@/lib/tts';
-import { playSuccessChime } from '@/lib/chime';
+import { playSuccessChime, playWarningChime } from '@/lib/chime';
+import VoiceAlertBanner, { VoiceAlert } from '@/components/VoiceAlertBanner';
 import confetti from 'canvas-confetti';
 import { X } from 'lucide-react';
 
@@ -78,6 +79,9 @@ export default function HomePage() {
 
   // Vendor route batch confirmation banner
   const [vendorBatchNotice, setVendorBatchNotice] = useState<any[] | null>(null);
+
+  // Active Voice Failure / Warning Alert
+  const [voiceAlert, setVoiceAlert] = useState<VoiceAlert | null>(null);
 
   // Modals
   const [showManualModal, setShowManualModal] = useState(false);
@@ -200,6 +204,7 @@ export default function HomePage() {
     setQueryAnswer(null);
     setAddedVendorNotice(null);
     setVendorBatchNotice(null);
+    setVoiceAlert(null);
 
     try {
       const parseRes = await fetch('/api/parse', {
@@ -208,6 +213,23 @@ export default function HomePage() {
         body: JSON.stringify({ transcript })
       });
       const parseData = await parseRes.json();
+
+      // Check if error or could not update
+      if (parseData.error || !parseData.success) {
+        playWarningChime();
+        if (parseData.spokenResponseHindi) {
+          speakHindi(parseData.spokenResponseHindi);
+        }
+        setVoiceAlert({
+          type: 'warning',
+          title: 'Hisaab Update Nahi Hua (Balance/Quantity Not Updated)',
+          reason: parseData.reason || 'Aapki aawaaz samajh nahi aayi ya customer match nahi hua.',
+          rawTranscript: transcript,
+          suggestion: parseData.suggestion || 'Kripya flat number ya customer ka naam saaf boliye.'
+        });
+        setIsProcessing(false);
+        return;
+      }
 
       // Case 1: VENDOR DELIVERY ROUTE (Vyapari Mode)
       if (parseData.intent === 'vendor_delivery' && parseData.deliveries) {
@@ -353,6 +375,17 @@ export default function HomePage() {
         <div className="mb-4 rounded-2xl overflow-hidden border border-emerald-200/80 shadow-2xs">
           <KeyNoticeBanner />
         </div>
+
+        {/* Active Voice Warning / Error Notification Banner */}
+        <VoiceAlertBanner
+          alert={voiceAlert}
+          onDismiss={() => setVoiceAlert(null)}
+          onRetry={() => {
+            setVoiceAlert(null);
+            speakHindi('Boliye, sun raha hoon');
+          }}
+          onManualOpen={() => setShowManualModal(true)}
+        />
 
         {/* =========================================================================
             DYNAMIC WORKSPACE SWITCHING: HOUSEHOLD VS VENDOR

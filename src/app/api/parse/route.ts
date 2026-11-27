@@ -188,20 +188,43 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Check if any customer was actually updated
+      if (updatedCustomers.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: true,
+          intent: 'vendor_delivery',
+          reason: 'Customer ya Flat number aapke route mein match nahi hua.',
+          suggestion: 'Aapne jo naam ya flat bola (jaise Gupta Ji ya Flat 402), woh aapke customer book mein nahi mila. Kripya flat number saaf boliye.',
+          transcript,
+          spokenResponseHindi: 'Hisaab update nahi ho paya. Yeh flat ya customer aapke route mein nahi mile.'
+        });
+      }
+
       // Enhanced spoken Hindi confirmation with new balance
-      if (updatedCustomers.length > 0) {
-        const primary = updatedCustomers[0];
-        if (primary.action === 'absent') {
-          result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ki aaj chhutti note ho gayi!`;
-        } else {
-          result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ko ${primary.quantity} Litre ${primary.isExtra ? 'extra ' : ''}doodh note ho gaya! Naya balance: ₹${primary.newBalance.toFixed(0)}`;
-        }
+      const primary = updatedCustomers[0];
+      if (primary.action === 'absent') {
+        result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ki aaj chhutti note ho gayi!`;
+      } else {
+        result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ko ${primary.quantity} Litre ${primary.isExtra ? 'extra ' : ''}doodh note ho gaya! Naya balance: ₹${primary.newBalance.toFixed(0)}`;
       }
 
       return NextResponse.json({ ...result, updatedCustomers });
     }
 
     // Intent 4: LOG_ENTRY (Default Household)
+    if (result.intent === 'log_entry' && (!result.items || result.items.length === 0)) {
+      return NextResponse.json({
+        success: false,
+        error: true,
+        intent: 'log_entry',
+        reason: 'Aapki aawaaz mein koi doorstep service (doodh, paani, press, maid) detect nahi hui.',
+        suggestion: 'Boliye: "Aaj doodh dedh litre liya aur 2 water can aaye" ya "Sunita didi chhutti pe hain".',
+        transcript,
+        spokenResponseHindi: 'Hisaab update nahi ho paya. Kripya doodh, paani ya maid bolkar bataiye.'
+      });
+    }
+
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error in /api/parse:', error);
