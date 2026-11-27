@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import KeyNoticeBanner from '@/components/KeyNoticeBanner';
-import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package } from 'lucide-react';
+import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package, TrendingUp } from 'lucide-react';
 
 interface Vendor {
   id: string;
@@ -57,130 +57,152 @@ export default function LedgerPage() {
     return acc + vTotal;
   }, 0);
 
+  const totalEntriesCount = vendors.reduce((acc, v) => acc + v.entries.length, 0);
+
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 pb-28 max-w-lg mx-auto shadow-2xl relative border-x border-slate-200">
-      <KeyNoticeBanner />
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 pb-24 md:pb-12">
+      <Navbar />
 
-      <header className="px-5 pt-5 pb-3 bg-white border-b border-slate-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-extrabold tracking-tight text-slate-900">
-              📊 Mahine Ka Hisaab
-            </h1>
-            <p className="text-xs text-slate-500">
-              Date-wise tally & vendor breakdown
-            </p>
-          </div>
-
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 font-medium block">Total Is Mahine</span>
-            <span className="text-base font-extrabold text-blue-600 flex items-center justify-end">
-              <IndianRupee className="w-3.5 h-3.5" />
-              {totalMonthlySpend.toFixed(0)}
-            </span>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="mb-4 rounded-2xl overflow-hidden border border-emerald-200/80 shadow-2xs">
+          <KeyNoticeBanner />
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex gap-1.5 overflow-x-auto py-2.5 mt-2 scrollbar-none">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              selectedCategory === 'all'
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Sabhi Vendors
-          </button>
-          {vendors.map(v => (
+        {/* Top Header Card */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl p-1 bg-blue-50 rounded-xl">📊</span>
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+                  Mahine Ka Hisaab & Ledger
+                </h1>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Date-wise doorstep breakdown, total units & jar deposit balances
+              </p>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="bg-slate-50 border border-slate-200/80 px-4 py-2.5 rounded-2xl text-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Entries</span>
+                <span className="text-lg font-black text-slate-900">{totalEntriesCount} Logs</span>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200/80 px-5 py-2.5 rounded-2xl text-right">
+                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-wider block">Total Is Mahine</span>
+                <span className="text-xl font-black text-blue-600 flex items-center justify-end">
+                  <IndianRupee className="w-4 h-4" />
+                  {totalMonthlySpend.toFixed(0)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex gap-2 overflow-x-auto pt-4 mt-2 border-t border-slate-100 scrollbar-none">
             <button
-              key={v.id}
-              onClick={() => setSelectedCategory(v.category)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1 transition-all ${
-                selectedCategory === v.category
-                  ? 'bg-blue-600 text-white shadow-sm'
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                selectedCategory === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              <span>{v.icon}</span>
-              <span>{v.displayName.split(' ')[0]}</span>
+              Sabhi Vendors ({vendors.length})
             </button>
-          ))}
+            {vendors.map(v => (
+              <button
+                key={v.id}
+                onClick={() => setSelectedCategory(v.category)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all ${
+                  selectedCategory === v.category
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <span>{v.icon}</span>
+                <span>{v.displayName.split(' ')[0]}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </header>
 
-      {/* Vendor Breakdown Cards */}
-      <div className="p-4 space-y-4">
-        {filteredVendors.map(vendor => {
-          const totalQty = vendor.entries.reduce((sum, e) => {
-            return (e.action === 'received' || e.action === 'given') ? sum + e.quantity : sum;
-          }, 0);
+        {/* Responsive Grid for Vendor Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredVendors.map(vendor => {
+            const totalQty = vendor.entries.reduce((sum, e) => {
+              return (e.action === 'received' || e.action === 'given') ? sum + e.quantity : sum;
+            }, 0);
 
-          const totalCost = vendor.entries.reduce((sum, e) => sum + e.amountCalculated, 0);
+            const totalCost = vendor.entries.reduce((sum, e) => sum + e.amountCalculated, 0);
 
-          return (
-            <div key={vendor.id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-2xl">{vendor.icon}</span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">{vendor.displayName}</h2>
-                    <p className="text-xs text-slate-500">
-                      Rate: ₹{vendor.unitRate}/{vendor.unit}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-900 block">
-                    {totalQty} {vendor.unit}
-                  </span>
-                  <span className="text-xs font-extrabold text-blue-600">
-                    ₹{totalCost.toFixed(0)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Water Jar Deposit Special Tracker */}
-              {vendor.category === 'water' && (
-                <div className="mt-2.5 bg-cyan-50 border border-cyan-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs text-cyan-950 font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-cyan-700" />
-                    <span>Pending Empty Jars (Aapke paas):</span>
-                  </div>
-                  <span className="font-extrabold text-cyan-800 text-sm bg-cyan-200 px-2 py-0.5 rounded-lg">
-                    {vendor.jarDepositBalance} Jars
-                  </span>
-                </div>
-              )}
-
-              {/* Recent Entries Sub-list */}
-              <div className="mt-3 space-y-1.5">
-                {vendor.entries.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic py-1">Abhi koi entry nahi hai</p>
-                ) : (
-                  vendor.entries.map(e => (
-                    <div key={e.id} className="flex items-center justify-between text-xs py-1 px-1 rounded-lg hover:bg-slate-50">
-                      <span className="text-slate-500 font-medium">{e.entryDate}</span>
-                      <div className="flex items-center gap-2 font-semibold text-slate-800">
-                        <span>
-                          {e.action === 'absent' ? 'Chhutti' : `${e.quantity} ${e.unit}`}
-                        </span>
-                        {e.amountCalculated > 0 && (
-                          <span className="text-slate-900">₹{e.amountCalculated}</span>
-                        )}
+            return (
+              <div key={vendor.id} className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl p-2 rounded-2xl shadow-inner" style={{ backgroundColor: `${vendor.color || '#3B82F6'}15` }}>
+                        {vendor.icon}
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900">{vendor.displayName}</h2>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Rate: ₹{vendor.unitRate}/{vendor.unit}
+                        </p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
-      <Navbar />
-    </main>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-900 block">
+                        {totalQty} {vendor.unit}
+                      </span>
+                      <span className="text-sm font-black text-blue-600">
+                        ₹{totalCost.toFixed(0)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Water Jar Deposit Special Tracker */}
+                  {vendor.category === 'water' && (
+                    <div className="mt-3 bg-cyan-50 border border-cyan-200/80 rounded-2xl p-3 flex items-center justify-between text-xs text-cyan-950 font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-cyan-700" />
+                        <span>Pending Empty Jars:</span>
+                      </div>
+                      <span className="font-extrabold text-cyan-900 bg-cyan-200 px-2.5 py-0.5 rounded-xl">
+                        {vendor.jarDepositBalance} Jars
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Date-wise entries */}
+                  <div className="mt-3 space-y-2">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recent Logs:</h4>
+                    {vendor.entries.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic py-2">Abhi koi entry nahi hai</p>
+                    ) : (
+                      vendor.entries.map(e => (
+                        <div key={e.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-xl bg-slate-50 hover:bg-slate-100/80 transition-colors">
+                          <span className="text-slate-500 font-medium">{e.entryDate}</span>
+                          <div className="flex items-center gap-2 font-bold text-slate-800">
+                            <span>
+                              {e.action === 'absent' ? 'Chhutti' : `${e.quantity} ${e.unit}`}
+                            </span>
+                            {e.amountCalculated > 0 && (
+                              <span className="text-blue-600 font-extrabold">₹{e.amountCalculated}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
