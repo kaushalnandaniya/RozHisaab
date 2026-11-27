@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import MicButton from '@/components/MicButton';
+import CustomerCalendarModal from '@/components/CustomerCalendarModal';
 import { 
   Sparkles, 
   Store, 
@@ -16,10 +17,22 @@ import {
   ShieldCheck,
   Check,
   X,
+  Calendar,
   AlertCircle
 } from 'lucide-react';
 import { playSuccessChime } from '@/lib/chime';
 import confetti from 'canvas-confetti';
+
+interface CustomerDelivery {
+  id: string;
+  customerId: string;
+  deliveryDate: string;
+  quantity: number;
+  unit: string;
+  action: string;
+  amount: number;
+  notes?: string;
+}
 
 interface Customer {
   id: string;
@@ -28,6 +41,7 @@ interface Customer {
   phone?: string;
   dailyQuantity: number;
   pendingBalance: number;
+  deliveries?: CustomerDelivery[];
 }
 
 interface VendorDashboardProps {
@@ -54,6 +68,9 @@ export default function VendorDashboard({
   onOpenOnboarding,
 }: VendorDashboardProps) {
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [selectedCalendarCustomer, setSelectedCalendarCustomer] = useState<Customer | null>(null);
+  const [selectedDate, setSelectedDate] = useState('2026-11-27');
+  
   const [newFlat, setNewFlat] = useState('');
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -61,25 +78,51 @@ export default function VendorDashboard({
   const [statusLog, setStatusLog] = useState<{ [flat: string]: string }>({});
 
   const vendorPresets = [
+    { label: '🥛 Gupta Ji 2L Extra', text: 'Gupta ji को 2 L दूध extra दिया आज' },
     { label: '🛵 Route Run (Flats 402, 501, 104)', text: 'Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti' },
     { label: '🥛 Flat 302 Extra Milk', text: 'Flat 302 mein do litre doodh diya' },
-    { label: '🏖️ Flat 104 Chhutti', text: 'Flat 104 Patel ji aaj chhutti pe hain' },
-    { label: '💧 2 Water Jars Delivered', text: 'Flat 501 mein 2 water can diye' }
+    { label: '🏖️ Flat 104 Patel Ji Chhutti', text: 'Flat 104 Patel ji aaj chhutti pe hain' }
   ];
 
   const totalReceivables = customers.reduce((sum, c) => sum + (c.pendingBalance || 0), 0);
 
-  const handleQuickLog = async (flat: string, qty: number, isAbsent: boolean = false) => {
+  const handleQuickLog = async (customer: Customer, qty: number, isAbsent: boolean = false) => {
     try {
       playSuccessChime();
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
       setStatusLog(prev => ({
         ...prev,
-        [flat]: isAbsent ? 'Absent' : `Delivered ${qty}L`
+        [customer.flatNumber]: isAbsent ? 'Absent' : `Delivered ${qty}L`
       }));
 
-      // Simulate sending parsed route batch
-      await onTranscript(isAbsent ? `${flat} chhutti` : `${flat} ${qty} litre`);
+      // Send to voice transcript handler
+      const phrase = isAbsent 
+        ? `${customer.customerName || customer.flatNumber} chhutti` 
+        : `${customer.customerName || customer.flatNumber} ko ${qty} litre doodh diya`;
+      await onTranscript(phrase);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateDeliveryFromCalendar = async (
+    customerId: string,
+    date: string,
+    quantity: number,
+    action: string
+  ) => {
+    try {
+      await fetch('/api/customers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId,
+          deliveryDate: date,
+          quantity,
+          action
+        })
+      });
+      await onRefreshCustomers();
     } catch (e) {
       console.error(e);
     }
@@ -98,7 +141,7 @@ export default function VendorDashboard({
           customerName: newName || 'Resident',
           phone: newPhone || '9876543210',
           dailyQuantity: parseFloat(newQty) || 1.0,
-          pendingBalance: (parseFloat(newQty) || 1.0) * 68 * 15 // 15 days pending
+          pendingBalance: (parseFloat(newQty) || 1.0) * 68 * 15
         })
       });
 
@@ -123,7 +166,7 @@ export default function VendorDashboard({
   return (
     <div className="space-y-6">
       
-      {/* Top Merchant Commercial Bar */}
+      {/* Top Merchant Commercial Header */}
       <div className="bg-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -203,11 +246,11 @@ export default function VendorDashboard({
                 <span className="text-xl">🎙️</span>
                 <div>
                   <h2 className="text-sm font-black text-slate-900 tracking-tight">Route Voice Station</h2>
-                  <p className="text-[11px] text-slate-400 font-medium">Poore route ki delivery ek saans mein boliye</p>
+                  <p className="text-[11px] text-slate-400 font-medium">Boliye: Name ya Flat bolkar hisaab note karein</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Route Mode
+                Voice Ready
               </span>
             </div>
 
@@ -221,7 +264,7 @@ export default function VendorDashboard({
             <div className="pt-2 border-t border-slate-100">
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
-                Tap-to-Test Route Voice Presets:
+                Tap-to-Test Voice Presets (Hindi & Hinglish):
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {vendorPresets.map((p, idx) => (
@@ -243,41 +286,74 @@ export default function VendorDashboard({
             <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 shadow-xs animate-fade-in">
               <div className="flex items-center gap-1.5 text-emerald-900 font-black text-xs mb-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Route Deliveries Successfully Updated!</span>
+                <span>Delivery & Balance Updated Live!</span>
               </div>
               <div className="space-y-1">
                 {vendorBatchNotice.map((d, i) => (
                   <div key={i} className="text-xs text-emerald-800 flex items-center justify-between">
-                    <span className="font-bold">{d.flatNumber}:</span>
-                    <span>{d.action === 'absent' ? '🏖️ Chhutti' : `🥛 ${d.quantity}L Delivered`}</span>
+                    <span className="font-bold">{d.customerName || d.flatNumber}:</span>
+                    <span>{d.action === 'absent' ? '🏖️ Chhutti' : `🥛 ${d.quantity}L ${d.isExtra ? '(Extra)' : ''} Delivered`}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Delivery Boy Speech Syntax Cheat Sheet */}
+          {/* Spoken Voice Syntax Guide */}
           <div className="bg-slate-900 text-slate-200 rounded-3xl p-4 text-xs border border-slate-800 shadow-xs">
             <h4 className="font-black text-white flex items-center gap-1.5 mb-2">
-              <span>🛵 Fast Voice Route Syntax:</span>
+              <span>🛵 Voice Delivery Examples:</span>
             </h4>
             <div className="space-y-1.5 text-[11px] text-slate-300">
               <p className="bg-slate-800/80 p-2 rounded-xl font-mono text-[10px] text-emerald-400">
+                "Gupta ji को 2 L दूध extra दिया आज"
+              </p>
+              <p className="bg-slate-800/80 p-2 rounded-xl font-mono text-[10px] text-emerald-400">
                 "Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti"
               </p>
-              <ul className="pl-3 list-disc space-y-1 text-slate-400">
-                <li>Automatic multi-flat batch detection</li>
-                <li>Flat balances auto-increase with delivery rate</li>
-                <li>Absent flats noted without charging customer</li>
+              <ul className="pl-3 list-disc space-y-1 text-slate-400 text-[10px]">
+                <li>Customer name ya Flat bolkar turant balance update hota hai</li>
+                <li>Devanagari script aur Hinglish dono 100% support hote hain</li>
+                <li>Har delivery tarikh-wise calendar card mein save hoti hai</li>
               </ul>
             </div>
           </div>
         </div>
 
-        {/* ================= RIGHT COLUMN: APARTMENT ROUTE RUN SHEET ================= */}
+        {/* ================= RIGHT COLUMN: APARTMENT ROUTE RUN SHEET & CALENDAR ================= */}
         <div className="md:col-span-7 space-y-4">
           
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs">
+          {/* Tarikh / Date Strip */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-4 shadow-xs flex items-center justify-between overflow-x-auto gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black text-slate-700 flex items-center gap-1 mr-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Tarikh:</span>
+              </span>
+              {[
+                { date: '2026-11-27', label: 'Aaj (27 Nov)' },
+                { date: '2026-11-26', label: '26 Nov' },
+                { date: '2026-11-25', label: '25 Nov' },
+                { date: '2026-11-24', label: '24 Nov' },
+                { date: '2026-11-23', label: '23 Nov' }
+              ].map((d) => (
+                <button
+                  key={d.date}
+                  onClick={() => setSelectedDate(d.date)}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
+                    selectedDate === d.date
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Customer Cards Book */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-sm font-black text-slate-900 tracking-tight">
@@ -287,14 +363,18 @@ export default function VendorDashboard({
               </div>
 
               <span className="text-xs font-black text-emerald-600">
-                Total Due: ₹{totalReceivables.toFixed(0)}
+                Total Vasooli: ₹{totalReceivables.toFixed(0)}
               </span>
             </div>
 
             {/* Flat Customer Cards */}
-            <div className="space-y-3 mt-3">
+            <div className="space-y-3 mt-2">
               {customers.map((c) => {
                 const todayStatus = statusLog[c.flatNumber];
+                
+                // Find if customer had delivery on selected date
+                const dateDelivery = c.deliveries?.find(d => d.deliveryDate === selectedDate);
+
                 return (
                   <div
                     key={c.id}
@@ -306,52 +386,72 @@ export default function VendorDashboard({
                           {c.flatNumber}
                         </span>
                         <span className="text-xs font-bold text-slate-900">{c.customerName}</span>
-                        {todayStatus && (
+
+                        {dateDelivery ? (
                           <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
-                            todayStatus.includes('Absent') 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-emerald-100 text-emerald-800'
+                            dateDelivery.action === 'absent'
+                              ? 'bg-amber-100 text-amber-800'
+                              : dateDelivery.action === 'extra'
+                              ? 'bg-emerald-100 text-emerald-800 font-black'
+                              : 'bg-emerald-50 text-emerald-700'
                           }`}>
+                            {dateDelivery.action === 'absent' 
+                              ? '🏖️ Chhutti' 
+                              : `🥛 ${dateDelivery.quantity}L ${dateDelivery.action === 'extra' ? '(Extra)' : ''}`}
+                          </span>
+                        ) : todayStatus ? (
+                          <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
                             {todayStatus}
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-medium">
                         <span>Daily: <strong>{c.dailyQuantity} L</strong></span>
                         <span>•</span>
                         <span className="text-emerald-700 font-bold">
-                          Pending: ₹{c.pendingBalance.toFixed(0)}
+                          Balance: ₹{c.pendingBalance.toFixed(0)}
                         </span>
+                        <span>•</span>
+                        <span className="text-slate-400 font-mono text-[10px]">{c.phone || '9876543210'}</span>
                       </div>
                     </div>
 
-                    {/* Quick 1-Tap Delivery Buttons */}
+                    {/* Quick 1-Tap Delivery & Calendar Buttons */}
                     <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
                       <button
-                        onClick={() => handleQuickLog(c.flatNumber, 1.0)}
+                        onClick={() => handleQuickLog(c, 1.0)}
                         className="text-[10px] font-bold px-2 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg active:scale-95 transition-all"
                       >
                         +1L
                       </button>
                       <button
-                        onClick={() => handleQuickLog(c.flatNumber, 1.5)}
+                        onClick={() => handleQuickLog(c, 1.5)}
                         className="text-[10px] font-bold px-2 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg active:scale-95 transition-all"
                       >
                         +1.5L
                       </button>
                       <button
-                        onClick={() => handleQuickLog(c.flatNumber, 2.0)}
+                        onClick={() => handleQuickLog(c, 2.0)}
                         className="text-[10px] font-bold px-2 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 rounded-lg active:scale-95 transition-all"
                       >
                         +2L
                       </button>
                       <button
-                        onClick={() => handleQuickLog(c.flatNumber, 0, true)}
+                        onClick={() => handleQuickLog(c, 0, true)}
                         className="text-[10px] font-bold px-2 py-1 bg-white hover:bg-amber-50 text-slate-500 hover:text-amber-700 border border-slate-200 rounded-lg active:scale-95 transition-all"
-                        title="Mark Absent today"
                       >
                         Chhutti
+                      </button>
+
+                      {/* 30-Day Calendar Milk Card Button */}
+                      <button
+                        onClick={() => setSelectedCalendarCustomer(c)}
+                        className="text-[10px] font-bold px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+                        title="View 30-Day Monthly Delivery Calendar Card"
+                      >
+                        <Calendar className="w-3 h-3 text-blue-600" />
+                        <span>दूध कार्ड</span>
                       </button>
 
                       {/* Send Bill Button */}
@@ -375,6 +475,18 @@ export default function VendorDashboard({
         </div>
 
       </div>
+
+      {/* 30-Day Calendar Card Modal */}
+      {selectedCalendarCustomer && (
+        <CustomerCalendarModal
+          customer={selectedCalendarCustomer}
+          businessName={businessName}
+          routeName={routeName}
+          isOpen={Boolean(selectedCalendarCustomer)}
+          onClose={() => setSelectedCalendarCustomer(null)}
+          onUpdateDelivery={handleUpdateDeliveryFromCalendar}
+        />
+      )}
 
       {/* Add Customer Flat Modal */}
       {showAddCustomerModal && (

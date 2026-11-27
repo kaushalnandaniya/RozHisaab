@@ -89,16 +89,44 @@ export async function seedDefaults() {
   ];
 
   for (const c of defaultCustomers) {
-    const existing = await prisma.customer.findFirst({
+    let customer = await prisma.customer.findFirst({
       where: { userId: user.id, flatNumber: c.flatNumber }
     });
-    if (!existing) {
-      await prisma.customer.create({
+    if (!customer) {
+      customer = await prisma.customer.create({
         data: {
           userId: user.id,
           ...c
         }
       });
+    }
+
+    // Seed calendar deliveries for November (days 1 to 26)
+    const existingDeliveries = await prisma.customerDelivery.findFirst({
+      where: { customerId: customer.id }
+    });
+
+    if (!existingDeliveries) {
+      for (let day = 1; day <= 26; day++) {
+        const dayStr = day < 10 ? `0${day}` : `${day}`;
+        const dateStr = `2026-11-${dayStr}`;
+        const isAbsent = (c.flatNumber === 'Flat 104' && day === 15) || (c.flatNumber === 'Flat 501' && day === 10);
+        const isExtra = (c.flatNumber === 'Flat 302' && day === 20); // Gupta Ji had extra on Nov 20
+        const qty = isAbsent ? 0 : (isExtra ? c.dailyQuantity + 1.0 : c.dailyQuantity);
+        const amount = qty * 68;
+
+        await prisma.customerDelivery.create({
+          data: {
+            customerId: customer.id,
+            deliveryDate: dateStr,
+            quantity: qty,
+            unit: 'litres',
+            action: isAbsent ? 'absent' : (isExtra ? 'extra' : 'received'),
+            amount: amount,
+            notes: isAbsent ? 'Chhutti' : (isExtra ? 'Extra 1L' : 'Regular supply')
+          }
+        });
+      }
     }
   }
 

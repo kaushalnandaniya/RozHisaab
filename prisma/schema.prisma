@@ -41,15 +41,29 @@ model Vendor {
 
 // For Vendor Mode: Customer list (e.g. Flat 402, Flat 501)
 model Customer {
-  id              String   @id @default(uuid())
+  id              String             @id @default(uuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  flatNumber      String   // e.g. "Flat 402", "B-104"
-  customerName    String   // e.g. "Sharma Ji", "Verma Ji"
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flatNumber      String             // e.g. "Flat 402", "B-104"
+  customerName    String             // e.g. "Sharma Ji", "Verma Ji"
   phone           String?
-  dailyQuantity   Float    @default(1.0)
-  pendingBalance  Float    @default(0)
-  createdAt       DateTime @default(now())
+  dailyQuantity   Float              @default(1.0)
+  pendingBalance  Float              @default(0)
+  createdAt       DateTime           @default(now())
+  deliveries      CustomerDelivery[]
+}
+
+model CustomerDelivery {
+  id           String   @id @default(uuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  deliveryDate String   // YYYY-MM-DD
+  quantity     Float    @default(0)
+  unit         String   @default("litres")
+  action       String   @default("received") // received, absent, extra
+  amount       Float    @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
 }
 
 model Entry {

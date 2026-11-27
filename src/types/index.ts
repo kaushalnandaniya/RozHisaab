@@ -27,9 +27,35 @@ export type UserIntent =
 
 export interface VendorDeliveryItem {
   flatNumber: string;
+  customerName?: string;
   quantity: number;
   unit: string;
-  action: 'received' | 'absent';
+  action: 'received' | 'absent' | 'extra';
+  isExtra?: boolean;
+}
+
+export interface CustomerDelivery {
+  id: string;
+  customerId: string;
+  deliveryDate: string;
+  quantity: number;
+  unit: string;
+  action: string;
+  amount: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface Customer {
+  id: string;
+  userId: string;
+  flatNumber: string;
+  customerName: string;
+  phone?: string;
+  dailyQuantity: number;
+  pendingBalance: number;
+  createdAt: string;
+  deliveries?: CustomerDelivery[];
 }
 
 export interface Vendor {

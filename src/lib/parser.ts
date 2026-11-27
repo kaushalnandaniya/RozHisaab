@@ -6,7 +6,10 @@ import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVe
  * Handles "dedh" (1.5), "dhaai" (2.5), "paune do" (1.75), "sawa" (1.25), "aadha" (0.5), "500", etc.
  */
 export function extractNumber(text: string): number | null {
-  const clean = text.toLowerCase().trim();
+  // Convert Devanagari numerals to standard digits (e.g. २ -> 2)
+  const devanagariDigits = '०१२३४५६७८९';
+  const normalized = text.replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString());
+  const clean = normalized.toLowerCase().trim();
 
   // "paune <number>" -> number - 0.25 (e.g., paune do = 1.75)
   const pauneMatch = clean.match(/(?:paune|पौने)\s+([a-z\u0900-\u097F0-9]+)/i);
@@ -28,7 +31,7 @@ export function extractNumber(text: string): number | null {
     }
   }
 
-  // Digits (e.g. 500, 1.5, 40)
+  // Digits (e.g. 500, 1.5, 2, 40)
   const digitMatch = clean.match(/(\d+(?:\.\d+)?)/);
   if (digitMatch) {
     return parseFloat(digitMatch[1]);
@@ -91,8 +94,19 @@ export function detectIntent(text: string): UserIntent {
     return 'query_hisaab';
   }
 
-  // Check if vendor delivery route (mentions "flat" or multiple flats)
-  if (lower.includes('flat') || lower.match(/\b\d{3}\s*(?:mein|me|ko)?\b/)) {
+  // Check if vendor delivery route (mentions "flat", flat numbers, or customer names like Gupta Ji, Sharma Ji, etc.)
+  const hasFlat = lower.includes('flat') || lower.includes('फ्लैट') || Boolean(lower.match(/\b\d{3}\s*(?:mein|me|ko|को)?\b/));
+  
+  // Names followed by ji, bhai, bhaiya, uncle, aunty OR common surnames
+  const hasCustomerName = Boolean(
+    lower.match(/\b(?:gupta|sharma|verma|patel|agarwal|singh|mishra|joshi|shah|mehta|jain|yadav|khan|गुप्ता|शर्मा|वर्मा|पटेल|अग्रवाल|सिंह|मिश्रा|जोशी|शाह|मेहता|जैन|यादव|खान|[a-z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)\b/i)
+  );
+
+  const hasDeliveryVerb = Boolean(
+    lower.match(/\b(?:extra|एक्स्ट्रा|diya|दिया|de diya|दे दिया|chhutti|छुट्टी|naaga|नागा|doodh|दूध|can|जार|पानी)\b/i)
+  );
+
+  if (hasFlat || (hasCustomerName && (hasDeliveryVerb || lower.includes('litre') || lower.includes('लीटर') || lower.includes('l')))) {
     return 'vendor_delivery';
   }
 
@@ -101,30 +115,86 @@ export function detectIntent(text: string): UserIntent {
 
 /**
  * Parses vendor delivery route speech
- * Example: "Flat 402 dedh litre, Flat 501 2 litre, Flat 104 chhutti"
+ * Example 1: "Flat 402 dedh litre, Flat 501 2 litre, Flat 104 chhutti"
+ * Example 2: "Gupta ji को 2 L दूध extra दिया आज"
  */
 export function parseVendorDelivery(rawTranscript: string): ParseResult {
   const deliveries: VendorDeliveryItem[] = [];
-  const segments = rawTranscript.split(/[,;\n]|(?:\s+aur\s+)/i).map(s => s.trim()).filter(Boolean);
+  const segments = rawTranscript.split(/[,;\n]|(?:\s+(?:aur|और)\s+)/i).map(s => s.trim()).filter(Boolean);
 
   for (const seg of segments) {
-    const flatMatch = seg.match(/(?:flat\s*)?(\d{3,4}|[a-z]-\d{3})/i);
+    const segLower = seg.toLowerCase();
+
+    // 1. Flat number matching (e.g. Flat 402, 402, B-104, फ्लैट ३०२)
+    const flatMatch = seg.match(/(?:flat|फ्लैट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
+
+    // 2. Customer name matching (e.g. Gupta ji, गुप्ता जी, Sharma ji, शर्मा जी)
+    const nameMatch = seg.match(/\b([a-zA-Z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)/i);
+
+    const isAbsent = Boolean(segLower.match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent)\b/i));
+    const isExtra = Boolean(segLower.match(/\b(?:extra|एक्स्ट्रा)\b/i));
+    const isWater = Boolean(segLower.match(/\b(?:water|can|paani|जार|कैन|पानी)\b/i));
+
+    // Strip flat number and customer name so extractNumber doesn't grab "402" as quantity
+    let segForNumber = seg;
     if (flatMatch) {
-      const flatNum = flatMatch[0].toLowerCase().startsWith('flat') ? flatMatch[0] : `Flat ${flatMatch[0]}`;
-      const isAbsent = seg.toLowerCase().includes('chhutti') || seg.toLowerCase().includes('band') || seg.toLowerCase().includes('naaga');
-      const qty = isAbsent ? 0 : (extractNumber(seg) ?? 1);
+      segForNumber = segForNumber.replace(flatMatch[0], '');
+    }
+    if (nameMatch) {
+      segForNumber = segForNumber.replace(nameMatch[0], '');
+    }
+
+    const qty = isAbsent ? 0 : (extractNumber(segForNumber) ?? 1);
+
+    if (flatMatch || nameMatch) {
+      let flatNum = flatMatch ? (flatMatch[0].toLowerCase().startsWith('flat') ? flatMatch[0] : `Flat ${flatMatch[0]}`) : '';
+      let custName = nameMatch ? `${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)} Ji` : undefined;
 
       deliveries.push({
-        flatNumber: flatNum.toUpperCase(),
+        flatNumber: flatNum.toUpperCase() || (custName ? custName : 'Route Customer'),
+        customerName: custName,
         quantity: qty,
-        unit: 'litres',
-        action: isAbsent ? 'absent' : 'received'
+        unit: isWater ? 'cans' : 'litres',
+        action: isAbsent ? 'absent' : (isExtra ? 'extra' : 'received'),
+        isExtra: isExtra
+      });
+    }
+  }
+
+  // Fallback: If no segments matched but whole transcript has customer name or flat
+  if (deliveries.length === 0) {
+    const isAbsent = Boolean(rawTranscript.toLowerCase().match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent)\b/i));
+    const isExtra = Boolean(rawTranscript.toLowerCase().match(/\b(?:extra|एक्स्ट्रा)\b/i));
+    const isWater = Boolean(rawTranscript.toLowerCase().match(/\b(?:water|can|paani|जार|कैन|पानी)\b/i));
+    const nameMatch = rawTranscript.match(/\b([a-zA-Z\u0900-\u097F]{3,20})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)/i);
+    const flatMatch = rawTranscript.match(/(?:flat|फ्लैट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
+
+    if (nameMatch || flatMatch) {
+      const custName = nameMatch ? `${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)} Ji` : undefined;
+      const flatNum = flatMatch ? (flatMatch[0].toLowerCase().startsWith('flat') ? flatMatch[0] : `Flat ${flatMatch[0]}`) : '';
+      
+      let rawForNumber = rawTranscript;
+      if (flatMatch) rawForNumber = rawForNumber.replace(flatMatch[0], '');
+      if (nameMatch) rawForNumber = rawForNumber.replace(nameMatch[0], '');
+
+      const qty = isAbsent ? 0 : (extractNumber(rawForNumber) ?? 1);
+
+      deliveries.push({
+        flatNumber: flatNum.toUpperCase() || (custName ? custName : 'Customer'),
+        customerName: custName,
+        quantity: qty,
+        unit: isWater ? 'cans' : 'litres',
+        action: isAbsent ? 'absent' : (isExtra ? 'extra' : 'received'),
+        isExtra: isExtra
       });
     }
   }
 
   const spokenParts = deliveries.map(d => {
-    return d.action === 'absent' ? `${d.flatNumber} chhutti` : `${d.flatNumber} ${d.quantity}L`;
+    const label = d.customerName || d.flatNumber;
+    if (d.action === 'absent') return `${label} chhutti`;
+    if (d.isExtra) return `${label} ko ${d.quantity}L extra doodh`;
+    return `${label} ${d.quantity}L`;
   });
 
   return {

@@ -117,23 +117,88 @@ export async function POST(req: NextRequest) {
       let user = await prisma.user.findFirst();
       if (!user) user = await prisma.user.create({ data: { name: 'Sharma Household' } });
 
+      const updatedCustomers: any[] = [];
+      const today = new Date().toISOString().split('T')[0];
+
       for (const del of result.deliveries) {
-        // Find matching customer or create
+        // Normalize name for flexible searching (e.g. "Gupta Ji" -> "Gupta", "गुप्ता जी" -> "गुप्ता")
+        const rawTarget = del.customerName || del.flatNumber;
+        const cleanName = rawTarget.replace(/(?:ji|जी|bhai|भाई|flat|फ्लैट)/gi, '').trim();
+
+        // Find customer by customerName OR flatNumber
         let customer = await prisma.customer.findFirst({
-          where: { userId: user.id, flatNumber: { contains: del.flatNumber } }
+          where: {
+            userId: user.id,
+            OR: [
+              { flatNumber: { contains: del.flatNumber } },
+              { flatNumber: { contains: cleanName } },
+              { customerName: { contains: cleanName } },
+              { customerName: { contains: del.customerName || '___none___' } }
+            ]
+          }
         });
 
-        if (customer && del.action !== 'absent') {
-          await prisma.customer.update({
+        // If not found yet and name is provided, auto-create customer on route
+        if (!customer && cleanName.length >= 2) {
+          customer = await prisma.customer.create({
+            data: {
+              userId: user.id,
+              flatNumber: del.flatNumber.startsWith('Flat') ? del.flatNumber : `Flat ${del.flatNumber}`,
+              customerName: del.customerName || `${cleanName} Ji`,
+              dailyQuantity: del.quantity || 1.5,
+              pendingBalance: 0
+            }
+          });
+        }
+
+        if (customer) {
+          const unitRate = 68; // ₹68 per litre / unit
+          const deliveryAmount = del.action === 'absent' ? 0 : (del.quantity * unitRate);
+
+          // 1. Update customer's pending balance
+          const updatedCust = await prisma.customer.update({
             where: { id: customer.id },
             data: {
-              pendingBalance: customer.pendingBalance + (del.quantity * 68) // default unit rate
+              pendingBalance: customer.pendingBalance + deliveryAmount
             }
+          });
+
+          // 2. Record CustomerDelivery entry for the calendar
+          await prisma.customerDelivery.create({
+            data: {
+              customerId: customer.id,
+              deliveryDate: today,
+              quantity: del.quantity,
+              unit: del.unit || 'litres',
+              action: del.action,
+              amount: deliveryAmount,
+              notes: del.isExtra ? 'Extra milk delivered' : (del.action === 'absent' ? 'Chhutti' : 'Regular delivery')
+            }
+          });
+
+          updatedCustomers.push({
+            id: updatedCust.id,
+            flatNumber: updatedCust.flatNumber,
+            customerName: updatedCust.customerName,
+            newBalance: updatedCust.pendingBalance,
+            quantity: del.quantity,
+            isExtra: del.isExtra,
+            action: del.action
           });
         }
       }
 
-      return NextResponse.json(result);
+      // Enhanced spoken Hindi confirmation with new balance
+      if (updatedCustomers.length > 0) {
+        const primary = updatedCustomers[0];
+        if (primary.action === 'absent') {
+          result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ki aaj chhutti note ho gayi!`;
+        } else {
+          result.spokenResponseHindi = `${primary.customerName} (${primary.flatNumber}) ko ${primary.quantity} Litre ${primary.isExtra ? 'extra ' : ''}doodh note ho gaya! Naya balance: ₹${primary.newBalance.toFixed(0)}`;
+        }
+      }
+
+      return NextResponse.json({ ...result, updatedCustomers });
     }
 
     // Intent 4: LOG_ENTRY (Default Household)
