@@ -8,16 +8,19 @@ generator client {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  name             String   @default("Sharma Household")
-  language         String   @default("hi")
-  role             String   @default("household") // "household" or "vendor"
-  householdCode    String   @default("SHARMA-402")
-  activeMemberName String   @default("Kaushal")
-  createdAt        DateTime @default(now())
-  vendors          Vendor[]
-  entries          Entry[]
-  customers        Customer[]
+  id                 String     @id @default(uuid())
+  name               String     @default("Sharma Household")
+  language           String     @default("hi")
+  role               String     @default("household") // "household" or "vendor"
+  householdCode      String     @default("SHARMA-402")
+  activeMemberName   String     @default("Kaushal")
+  vendorBusinessName String?    @default("Raju Doodh Dairy")
+  vendorCategory     String?    @default("milk") // milk, water, laundry, tiffin
+  vendorRouteName    String?    @default("Gokuldham Heights - Tower A")
+  createdAt          DateTime   @default(now())
+  vendors            Vendor[]
+  entries            Entry[]
+  customers          Customer[]
 }
 
 model Vendor {

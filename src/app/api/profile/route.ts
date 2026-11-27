@@ -10,7 +10,10 @@ export async function GET() {
           name: 'Sharma Household',
           role: 'household',
           householdCode: 'SHARMA-402',
-          activeMemberName: 'Kaushal'
+          activeMemberName: 'Kaushal',
+          vendorBusinessName: 'Raju Doodh Dairy',
+          vendorCategory: 'milk',
+          vendorRouteName: 'Gokuldham Heights - Tower A'
         }
       });
     }
@@ -22,7 +25,10 @@ export async function GET() {
         role: user.role,
         householdCode: user.householdCode,
         activeMemberName: user.activeMemberName,
-        availableMembers: ['Kaushal', 'Mummy', 'Papa', 'Sister']
+        vendorBusinessName: user.vendorBusinessName || 'Raju Doodh Dairy',
+        vendorCategory: user.vendorCategory || 'milk',
+        vendorRouteName: user.vendorRouteName || 'Gokuldham Heights - Tower A',
+        availableMembers: ['Kaushal', 'Mummy', 'Papa', 'Sister', 'Grandpa']
       }
     });
   } catch (error: any) {
@@ -33,7 +39,14 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { role, activeMemberName, householdCode } = body;
+    const { 
+      role, 
+      activeMemberName, 
+      householdCode, 
+      vendorBusinessName, 
+      vendorCategory, 
+      vendorRouteName 
+    } = body;
 
     let user = await prisma.user.findFirst();
     if (!user) {
@@ -45,7 +58,10 @@ export async function PUT(req: NextRequest) {
       data: {
         role: role !== undefined ? role : undefined,
         activeMemberName: activeMemberName !== undefined ? activeMemberName : undefined,
-        householdCode: householdCode !== undefined ? householdCode : undefined
+        householdCode: householdCode !== undefined ? householdCode : undefined,
+        vendorBusinessName: vendorBusinessName !== undefined ? vendorBusinessName : undefined,
+        vendorCategory: vendorCategory !== undefined ? vendorCategory : undefined,
+        vendorRouteName: vendorRouteName !== undefined ? vendorRouteName : undefined
       }
     });
 

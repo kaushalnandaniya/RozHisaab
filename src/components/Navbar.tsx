@@ -13,7 +13,9 @@ import {
   Check, 
   Store, 
   Home, 
-  UserCheck 
+  UserCheck,
+  Building2,
+  SlidersHorizontal
 } from 'lucide-react';
 import { playSuccessChime } from '@/lib/chime';
 
@@ -22,11 +24,28 @@ export default function Navbar() {
   const [role, setRole] = useState<'household' | 'vendor'>('household');
   const [householdCode, setHouseholdCode] = useState('SHARMA-402');
   const [activeMember, setActiveMember] = useState('Kaushal');
+  const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
+  const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
   const [copied, setCopied] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
 
   useEffect(() => {
     fetchProfile();
+
+    const handleRoleChange = (e: any) => {
+      setRole(e.detail);
+    };
+    const handleMemberChange = (e: any) => {
+      setActiveMember(e.detail);
+    };
+
+    window.addEventListener('rozhisaab-role-changed', handleRoleChange);
+    window.addEventListener('rozhisaab-member-changed', handleMemberChange);
+
+    return () => {
+      window.removeEventListener('rozhisaab-role-changed', handleRoleChange);
+      window.removeEventListener('rozhisaab-member-changed', handleMemberChange);
+    };
   }, []);
 
   const fetchProfile = async () => {
@@ -37,6 +56,8 @@ export default function Navbar() {
         setRole(data.user.role || 'household');
         setHouseholdCode(data.user.householdCode || 'SHARMA-402');
         setActiveMember(data.user.activeMemberName || 'Kaushal');
+        setVendorBusinessName(data.user.vendorBusinessName || 'Raju Doodh Dairy');
+        setVendorRouteName(data.user.vendorRouteName || 'Gokuldham Heights - Tower A');
       }
     } catch (e) {
       console.error(e);
@@ -52,7 +73,6 @@ export default function Navbar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
       });
-      // Trigger a page reload or event so dashboard adapts
       window.dispatchEvent(new CustomEvent('rozhisaab-role-changed', { detail: newRole }));
     } catch (e) {
       console.error(e);
@@ -83,41 +103,68 @@ export default function Navbar() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const navItems = [
-    { label: 'Aaj Ka Log', href: '/', icon: Mic, desktopLabel: role === 'vendor' ? 'Vyapari Console' : 'Voice Dashboard' },
-    { label: 'Hisaab Tally', href: '/ledger', icon: FileText, desktopLabel: role === 'vendor' ? 'Customer Book' : 'Monthly Ledger' },
-    { label: 'Settle / WhatsApp', href: '/settle', icon: Send, desktopLabel: role === 'vendor' ? 'Send Bills' : 'WhatsApp Settle' },
-    { label: 'Settings', href: '/vendors', icon: Settings, desktopLabel: 'Vendors & Rates' },
+  // Highly differentiated navigation items
+  const householdNavItems = [
+    { label: 'Aaj Ka Log', href: '/', icon: Mic, desktopLabel: 'Doorstep Voice Log' },
+    { label: 'Mahine Ka Ledger', href: '/ledger', icon: FileText, desktopLabel: 'Monthly Ledger' },
+    { label: 'Settle Bills', href: '/settle', icon: Send, desktopLabel: 'Settle via WhatsApp & UPI' },
+    { label: 'Mere Vendors', href: '/vendors', icon: Settings, desktopLabel: 'Vendors & Rates' },
   ];
 
+  const vendorNavItems = [
+    { label: 'Route Run', href: '/', icon: Mic, desktopLabel: 'Route Voice Run' },
+    { label: 'Grahak Khata', href: '/ledger', icon: FileText, desktopLabel: 'Apartment Customer Book' },
+    { label: 'Vasooli & Bills', href: '/settle', icon: Send, desktopLabel: 'Vasooli & Invoices' },
+    { label: 'Rate Card', href: '/vendors', icon: Settings, desktopLabel: 'Rate Card & Route' },
+  ];
+
+  const navItems = role === 'vendor' ? vendorNavItems : householdNavItems;
   const familyMembers = ['Kaushal', 'Mummy', 'Papa', 'Sister', 'Grandpa'];
 
   return (
     <>
       {/* =========================================================================
-          DESKTOP TOP NAVIGATION BAR (Visible on md: and larger screens)
+          DESKTOP TOP NAVIGATION BAR
           ========================================================================= */}
-      <header className="hidden md:block sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+      <header className={`hidden md:block sticky top-0 z-40 transition-colors shadow-xs ${
+        role === 'vendor'
+          ? 'bg-slate-900 border-b border-slate-800 text-white'
+          : 'bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900'
+      }`}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           
-          {/* Logo & Branding */}
+          {/* Logo & Category Branding */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-all">
-              <span className="text-xl">🎙️</span>
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md transition-all group-hover:scale-105 ${
+              role === 'vendor'
+                ? 'bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-500/20'
+                : 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 shadow-blue-500/20'
+            }`}>
+              <span className="text-xl">{role === 'vendor' ? '🛵' : '🎙️'}</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight text-slate-900">RozHisaab</span>
-                <span className="text-[10px] bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
-                  Voice-First Bharat
+                <span className="text-lg font-black tracking-tight">RozHisaab</span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs ${
+                  role === 'vendor'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-blue-600 text-white'
+                }`}>
+                  {role === 'vendor' ? '🛵 Vyapari Console' : '🏠 Ghar Ka Hisaab'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">Doorstep Daily Household Ledger</p>
+              <p className={`text-[11px] font-medium ${role === 'vendor' ? 'text-slate-400' : 'text-slate-400'}`}>
+                {role === 'vendor' ? `${vendorBusinessName} • ${vendorRouteName}` : 'Doorstep Daily Household Ledger'}
+              </p>
             </div>
           </Link>
 
-          {/* Nav Links */}
-          <nav className="flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-inner">
+          {/* Differentiated Nav Links */}
+          <nav className={`flex items-center gap-1.5 p-1.5 rounded-2xl border shadow-inner ${
+            role === 'vendor'
+              ? 'bg-slate-800/80 border-slate-700/60'
+              : 'bg-slate-100/80 border-slate-200/60'
+          }`}>
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -125,13 +172,13 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                     isActive
-                      ? 'bg-white text-blue-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                      ? (role === 'vendor' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-blue-700 shadow-xs')
+                      : (role === 'vendor' ? 'text-slate-400 hover:text-white hover:bg-slate-700/50' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50')
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? (role === 'vendor' ? 'text-white' : 'text-blue-600') : 'opacity-60'}`} />
                   <span>{item.desktopLabel}</span>
                 </Link>
               );
@@ -140,39 +187,43 @@ export default function Navbar() {
 
           {/* Role Switcher & Family Sync Badge */}
           <div className="flex items-center gap-3">
-            {/* Role Toggle Button */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+            
+            {/* Mode Switcher Pill */}
+            <div className={`flex items-center p-1 rounded-2xl border text-xs font-bold ${
+              role === 'vendor' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+            }`}>
               <button
                 onClick={() => handleRoleToggle('household')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                   role === 'household'
-                    ? 'bg-white text-blue-700 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-white text-blue-700 shadow-2xs font-extrabold'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Home className="w-3.5 h-3.5" />
-                <span>Ghar (Household)</span>
+                <span>Ghar</span>
               </button>
 
               <button
                 onClick={() => handleRoleToggle('vendor')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${
                   role === 'vendor'
-                    ? 'bg-white text-emerald-700 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
+                    : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Store className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Vyapari (Vendor)</span>
+                <Store className="w-3.5 h-3.5" />
+                <span>Vyapari</span>
               </button>
             </div>
 
-            {/* Household Code / Family Sync Pill */}
+            {/* Persona Specific Badges */}
             {role === 'household' ? (
               <div className="flex items-center gap-2 bg-blue-50/70 border border-blue-200/80 px-3 py-1.5 rounded-2xl text-xs">
                 <button
                   onClick={() => setShowMemberModal(true)}
                   className="font-bold text-blue-900 hover:text-blue-700 flex items-center gap-1"
+                  title="Switch Active Family Member"
                 >
                   <UserCheck className="w-3.5 h-3.5 text-blue-600" />
                   <span>{activeMember}</span>
@@ -184,7 +235,7 @@ export default function Navbar() {
                 <button
                   onClick={copyHouseholdInvite}
                   className="font-semibold text-blue-700 flex items-center gap-1 hover:text-blue-950"
-                  title="Copy Family Household Sync Code"
+                  title="Copy Household Code"
                 >
                   <Users className="w-3.5 h-3.5" />
                   <span className="font-mono text-[11px] font-bold">{householdCode}</span>
@@ -192,16 +243,21 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold text-emerald-900">
+              <div className="flex items-center gap-1.5 bg-slate-800 border border-emerald-500/30 px-3 py-1.5 rounded-2xl text-xs font-bold text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Raju Doodhwala (Vendor)</span>
+                <span>{vendorBusinessName}</span>
               </div>
             )}
-            {/* Change / Reconfigure Category Button */}
+
+            {/* Setup Wizard Button */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('rozhisaab-open-onboarding'))}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
-              title="Change Category / Setup Wizard"
+              className={`p-2 rounded-xl transition-all ${
+                role === 'vendor'
+                  ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+              }`}
+              title="Open Setup Wizard / Change Category"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -210,16 +266,20 @@ export default function Navbar() {
       </header>
 
       {/* =========================================================================
-          MOBILE TOP ROLE & FAMILY HEADER (Visible on < md screens)
+          MOBILE TOP CATEGORY HEADER
           ========================================================================= */}
-      <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between text-xs">
-        {/* Mobile Role Switch & Setup */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-[11px] font-bold">
+      <div className={`md:hidden px-4 py-2 flex items-center justify-between text-xs border-b ${
+        role === 'vendor' ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+      }`}>
+        <div className="flex items-center gap-2">
+          {/* Mobile Role Switch */}
+          <div className={`flex items-center p-0.5 rounded-xl border text-[11px] font-bold ${
+            role === 'vendor' ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+          }`}>
             <button
               onClick={() => handleRoleToggle('household')}
               className={`px-2.5 py-1 rounded-lg transition-all ${
-                role === 'household' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-500'
+                role === 'household' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-400'
               }`}
             >
               🏠 Ghar
@@ -227,7 +287,7 @@ export default function Navbar() {
             <button
               onClick={() => handleRoleToggle('vendor')}
               className={`px-2.5 py-1 rounded-lg transition-all ${
-                role === 'vendor' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500'
+                role === 'vendor' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-400'
               }`}
             >
               🛵 Vyapari
@@ -236,21 +296,22 @@ export default function Navbar() {
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('rozhisaab-open-onboarding'))}
-            className="text-[11px] text-slate-500 bg-slate-100 border border-slate-200 p-1 rounded-lg hover:text-slate-800"
-            title="Setup / Change Category"
+            className={`text-[11px] font-bold p-1 px-2 rounded-lg border ${
+              role === 'vendor' ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+            }`}
           >
-            ⚙️
+            ⚙️ Setup
           </button>
         </div>
 
-        {/* Mobile Member / Code Tag */}
-        {role === 'household' && (
-          <div className="flex items-center gap-2">
+        {/* Member or Business Tag */}
+        {role === 'household' ? (
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowMemberModal(true)}
               className="text-[11px] font-bold text-slate-800 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg"
             >
-              👤 {activeMember} ▾
+              👤 {activeMember}
             </button>
             <button
               onClick={copyHouseholdInvite}
@@ -260,13 +321,19 @@ export default function Navbar() {
               {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Share2 className="w-3 h-3 text-blue-400" />}
             </button>
           </div>
+        ) : (
+          <div className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg truncate max-w-[140px]">
+            {vendorBusinessName}
+          </div>
         )}
       </div>
 
       {/* =========================================================================
-          MOBILE STICKY BOTTOM NAVIGATION BAR (Visible only on mobile < md screens)
+          MOBILE BOTTOM NAVIGATION BAR
           ========================================================================= */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1 shadow-lg">
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-md px-2 py-1 shadow-lg border-t ${
+        role === 'vendor' ? 'bg-slate-900/95 border-slate-800 text-slate-400' : 'bg-white/95 border-slate-200 text-slate-500'
+      }`}>
         <div className="flex justify-around items-center max-w-md mx-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -277,8 +344,8 @@ export default function Navbar() {
                 href={item.href}
                 className={`flex flex-col items-center py-1.5 px-3 rounded-xl transition-all ${
                   isActive
-                    ? 'text-blue-600 font-bold'
-                    : 'text-slate-500 hover:text-slate-900 font-medium'
+                    ? (role === 'vendor' ? 'text-emerald-400 font-black' : 'text-blue-600 font-bold')
+                    : 'hover:text-slate-900 font-medium'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
