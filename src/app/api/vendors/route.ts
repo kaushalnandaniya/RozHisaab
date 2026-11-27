@@ -8,7 +8,6 @@ export async function GET() {
       user = await prisma.user.create({ data: { name: 'Sharma Household' } });
     }
 
-    // Get all vendors with their total entry counts and recent entries
     const vendors = await prisma.vendor.findMany({
       where: { userId: user.id },
       include: {
@@ -22,6 +21,36 @@ export async function GET() {
     return NextResponse.json({ vendors });
   } catch (error: any) {
     console.error('Error fetching vendors:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { displayName, category, unit, unitRate, vendorPhone, icon, color } = body;
+
+    let user = await prisma.user.findFirst();
+    if (!user) {
+      user = await prisma.user.create({ data: { name: 'Sharma Household' } });
+    }
+
+    const vendor = await prisma.vendor.create({
+      data: {
+        userId: user.id,
+        category: category || 'custom',
+        displayName: displayName || 'New Vendor',
+        unit: unit || 'units',
+        unitRate: unitRate !== undefined ? parseFloat(unitRate) : 50,
+        vendorPhone: vendorPhone || null,
+        icon: icon || '🏷️',
+        color: color || '#3B82F6'
+      }
+    });
+
+    return NextResponse.json({ success: true, vendor });
+  } catch (error: any) {
+    console.error('Error creating vendor:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

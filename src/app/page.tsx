@@ -6,16 +6,23 @@ import KeyNoticeBanner from '@/components/KeyNoticeBanner';
 import UndoToast from '@/components/UndoToast';
 import Navbar from '@/components/Navbar';
 import { speakHindi } from '@/lib/tts';
+import { playSuccessChime } from '@/lib/chime';
 import { 
   Sparkles, 
   Trash2, 
-  ArrowRight, 
   CheckCircle2, 
   Clock, 
   IndianRupee,
-  Calendar
+  Calendar,
+  PlusCircle,
+  HelpCircle,
+  Layers,
+  X,
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import Link from 'next/link';
 
 interface Entry {
   id: string;
@@ -34,28 +41,64 @@ interface Entry {
   };
 }
 
+interface Vendor {
+  id: string;
+  displayName: string;
+  category: string;
+  unit: string;
+  unitRate: number;
+  icon?: string;
+}
+
 export default function HomePage() {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastLoggedEntryId, setLastLoggedEntryId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [totalToday, setTotalToday] = useState(0);
-  const [todayDisplay, setTodayDisplay] = useState('');
+  
+  // Date selection (default today)
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [dateLabel, setDateLabel] = useState<string>('Aaj');
 
-  // Load today's entries on mount
+  // Query Answer banner
+  const [queryAnswer, setQueryAnswer] = useState<{ title: string; summary: string } | null>(null);
+
+  // New Vendor celebration banner
+  const [addedVendorNotice, setAddedVendorNotice] = useState<any | null>(null);
+
+  // Manual Add Modal
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualVendorId, setManualVendorId] = useState('');
+  const [manualQty, setManualQty] = useState('1');
+  const [manualAction, setManualAction] = useState('received');
+
   useEffect(() => {
-    setTodayDisplay(new Date().toLocaleDateString('hi-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    }));
-    fetchTodayEntries();
+    const today = new Date().toISOString().split('T')[0];
+    setSelectedDate(today);
+    fetchEntries(today);
+    fetchVendors();
   }, []);
 
-  const fetchTodayEntries = async () => {
+  const fetchVendors = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const res = await fetch(`/api/entries?date=${today}`);
+      const res = await fetch('/api/vendors');
+      const data = await res.json();
+      if (data.vendors) {
+        setVendors(data.vendors);
+        if (data.vendors.length > 0) {
+          setManualVendorId(data.vendors[0].id);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchEntries = async (dateStr: string) => {
+    try {
+      const res = await fetch(`/api/entries?date=${dateStr}`);
       const data = await res.json();
       if (data.entries) {
         setEntries(data.entries);
@@ -67,12 +110,26 @@ export default function HomePage() {
     }
   };
 
+  const setDateFilter = (type: 'today' | 'yesterday') => {
+    const d = new Date();
+    if (type === 'yesterday') {
+      d.setDate(d.getDate() - 1);
+      setDateLabel('Kal');
+    } else {
+      setDateLabel('Aaj');
+    }
+    const iso = d.toISOString().split('T')[0];
+    setSelectedDate(iso);
+    fetchEntries(iso);
+  };
+
   const handleTranscript = async (transcript: string) => {
     if (!transcript.trim()) return;
     setIsProcessing(true);
+    setQueryAnswer(null);
+    setAddedVendorNotice(null);
 
     try {
-      // Step 1: Parse natural spoken sentence
       const parseRes = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,13 +137,34 @@ export default function HomePage() {
       });
       const parseData = await parseRes.json();
 
+      // Case 1: ADD VENDOR INTENT
+      if (parseData.intent === 'add_vendor') {
+        playSuccessChime();
+        confetti({ particleCount: 40, spread: 70, origin: { y: 0.8 } });
+        speakHindi(parseData.spokenResponseHindi);
+        setAddedVendorNotice(parseData.savedVendor || parseData.newVendor);
+        await fetchVendors();
+        setIsProcessing(false);
+        return;
+      }
+
+      // Case 2: QUERY HISAAB INTENT
+      if (parseData.intent === 'query_hisaab') {
+        speakHindi(parseData.spokenResponseHindi);
+        if (parseData.queryAnswer) {
+          setQueryAnswer(parseData.queryAnswer);
+        }
+        setIsProcessing(false);
+        return;
+      }
+
+      // Case 3: LOG ENTRY INTENT (Default)
       if (!parseData.items || parseData.items.length === 0) {
         speakHindi('Aapki aawaaz samajh nahi aayi, kripya dohraiye');
         setIsProcessing(false);
         return;
       }
 
-      // Step 2: Save each extracted vendor entry
       let lastId: string | null = null;
       for (const item of parseData.items) {
         const createRes = await fetch('/api/entries', {
@@ -102,7 +180,8 @@ export default function HomePage() {
             itemsDetail: item.itemsDetail,
             advanceAmount: item.advanceAmount,
             notes: item.notes,
-            rawTranscript: transcript
+            rawTranscript: transcript,
+            entryDate: selectedDate
           })
         });
         const createData = await createRes.json();
@@ -111,7 +190,7 @@ export default function HomePage() {
         }
       }
 
-      // Step 3: Audio read-back & visual celebration
+      playSuccessChime();
       speakHindi(parseData.spokenResponseHindi);
       confetti({ particleCount: 35, spread: 60, origin: { y: 0.85 } });
 
@@ -120,11 +199,39 @@ export default function HomePage() {
         setToastMessage(parseData.spokenResponseHindi);
       }
 
-      await fetchTodayEntries();
+      await fetchEntries(selectedDate);
     } catch (err) {
       console.error('Error processing voice entry:', err);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const vendor = vendors.find(v => v.id === manualVendorId);
+    if (!vendor) return;
+
+    try {
+      await fetch('/api/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendorCategory: vendor.category,
+          vendorName: vendor.displayName,
+          quantity: parseFloat(manualQty) || 1,
+          unit: vendor.unit,
+          action: manualAction,
+          entryDate: selectedDate,
+          rawTranscript: 'Manual entry'
+        })
+      });
+
+      playSuccessChime();
+      setShowManualModal(false);
+      await fetchEntries(selectedDate);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -134,99 +241,197 @@ export default function HomePage() {
       setLastLoggedEntryId(null);
       setToastMessage(null);
       speakHindi('Entry wapas le li gayi');
-      await fetchTodayEntries();
+      await fetchEntries(selectedDate);
     } catch (err) {
       console.error('Failed to undo:', err);
     }
   };
 
   const testPhrases = [
-    'Aaj doodh dedh litre liya aur 2 water can aaye',
-    'Presswale ko 4 shirt aur 2 pant diye',
-    'Sunita didi aaj chhutti pe hain',
-    '1 khali jar wapas diya aur 1 can liya'
+    { label: '🥛+💧 Milk & Water', text: 'Aaj doodh dedh litre liya aur 2 water can aaye' },
+    { label: '👔 Presswala', text: 'Presswale ko 4 shirt aur 2 pant diye' },
+    { label: '🧹 Didi Leave', text: 'Sunita didi aaj chhutti pe hain' },
+    { label: '➕ Add Vendor', text: 'Naya vendor add karo: Ramu Car Wash, rate 500 rupaye mahina, phone 9876543210' },
+    { label: '❓ Ask Doubt', text: 'Is mahine paani ka total kitna hua?' }
   ];
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 pb-28 max-w-lg mx-auto shadow-2xl relative border-x border-slate-200">
-      {/* Zero-Config Safety Banner */}
       <KeyNoticeBanner />
 
       {/* Top Header */}
-      <header className="px-5 pt-5 pb-3 bg-white border-b border-slate-100">
+      <header className="px-5 pt-4 pb-3 bg-white border-b border-slate-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🎙️</span>
+            <span className="text-2xl p-1 bg-blue-50 rounded-xl shadow-2xs">🎙️</span>
             <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">
-                RozHisaab <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">Voice-First</span>
+              <h1 className="text-base font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5">
+                RozHisaab 
+                <span className="text-[10px] bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold px-2 py-0.5 rounded-full shadow-xs">
+                  Voice-First
+                </span>
               </h1>
-              <p className="text-xs text-slate-500 capitalize flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-slate-400" />
-                {todayDisplay}
+              <p className="text-[11px] text-slate-500 font-medium">
+                Hands-Free Daily Doorstep Ledger
               </p>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] text-slate-400 font-medium block">Aaj ka kharch</span>
-            <span className="text-base font-extrabold text-blue-600 flex items-center justify-end">
-              <IndianRupee className="w-3.5 h-3.5" />
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase tracking-wider">{dateLabel} Ka Total</span>
+            <span className="text-lg font-black text-blue-600 flex items-center justify-end">
+              <IndianRupee className="w-4 h-4" />
               {totalToday.toFixed(0)}
             </span>
           </div>
         </div>
+
+        {/* Date Quick Switcher Bar */}
+        <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setDateFilter('today')}
+              className={`px-3 py-1 rounded-full font-bold transition-all ${
+                dateLabel === 'Aaj'
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Aaj (Today)
+            </button>
+            <button
+              onClick={() => setDateFilter('yesterday')}
+              className={`px-3 py-1 rounded-full font-bold transition-all ${
+                dateLabel === 'Kal'
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Kal (Yesterday)
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="text-[11px] font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 transition-all"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-blue-500" />
+            <span>Manual Entry</span>
+          </button>
+        </div>
       </header>
 
-      {/* Voice Mic Core Interaction */}
-      <section className="bg-gradient-to-b from-white to-slate-50 border-b border-slate-200/60 pb-2">
+      {/* Voice Core Mic Section */}
+      <section className="bg-gradient-to-b from-white to-slate-50 border-b border-slate-200/60 pb-3">
         <MicButton
           onTranscriptComplete={handleTranscript}
           isProcessing={isProcessing}
         />
 
-        {/* Quick Demo Voice Shortcuts for Judges/Testing */}
-        <div className="px-4 pb-4">
-          <p className="text-[11px] text-slate-400 font-semibold mb-2 flex items-center gap-1">
+        {/* Quick Demo Voice Shortcuts for Testing */}
+        <div className="px-4">
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-500" />
-            Quick Test Utterances (Tap to Simulate Voice):
+            Quick Test Utterances (Tap to Test Voice Intents):
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {testPhrases.map((phrase, idx) => (
+            {testPhrases.map((p, idx) => (
               <button
                 key={idx}
-                onClick={() => handleTranscript(phrase)}
+                onClick={() => handleTranscript(p.text)}
                 disabled={isProcessing}
-                className="text-[11px] bg-white border border-slate-200 hover:border-blue-400 text-slate-700 px-2.5 py-1.5 rounded-xl shadow-sm active:scale-95 transition-all text-left truncate max-w-full"
+                className="text-[11px] bg-white border border-slate-200 hover:border-blue-500 text-slate-700 px-2.5 py-1.5 rounded-xl shadow-2xs active:scale-95 transition-all text-left flex items-center gap-1"
               >
-                "{phrase}"
+                <span className="font-semibold text-slate-900">{p.label}</span>
               </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Today's Logged Activity Feed */}
+      {/* Query Answer Callout (If user asked a question) */}
+      {queryAnswer && (
+        <section className="mx-4 mt-4 p-4 bg-purple-50 border border-purple-200 rounded-3xl shadow-xs animate-slide-up">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">💡</span>
+              <h3 className="text-sm font-bold text-purple-950">{queryAnswer.title}</h3>
+            </div>
+            <button
+              onClick={() => setQueryAnswer(null)}
+              className="text-purple-400 hover:text-purple-700 p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs font-semibold text-purple-900 mt-2 leading-relaxed">
+            {queryAnswer.summary}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Link
+              href="/ledger"
+              className="text-[11px] font-bold text-purple-700 bg-white border border-purple-200 px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-2xs hover:bg-purple-100"
+            >
+              <span>Ledger View</span>
+              <ChevronRight className="w-3 h-3" />
+            </Link>
+            <Link
+              href="/settle"
+              className="text-[11px] font-bold text-white bg-purple-600 px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-2xs hover:bg-purple-700"
+            >
+              <span>Settle on WhatsApp</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* New Vendor Added Callout */}
+      {addedVendorNotice && (
+        <section className="mx-4 mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-3xl shadow-xs animate-slide-up">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{addedVendorNotice.icon || '🎉'}</span>
+              <div>
+                <h3 className="text-sm font-bold text-emerald-950">
+                  Naya Vendor Safalta Se Jud Gaya!
+                </h3>
+                <p className="text-xs text-emerald-800 font-medium">
+                  {addedVendorNotice.displayName} • ₹{addedVendorNotice.unitRate}/{addedVendorNotice.unit}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setAddedVendorNotice(null)}
+              className="text-emerald-400 hover:text-emerald-700 p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Doorstep Logs Feed */}
       <section className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
-            Aaj Ke Doorstep Logs ({entries.length})
+            {dateLabel} Ke Doorstep Logs ({entries.length})
           </h2>
           {entries.length > 0 && (
-            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Auto-saved
+              Verified & Saved
             </span>
           )}
         </div>
 
         {entries.length === 0 ? (
-          <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center my-4">
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-8 text-center my-3 shadow-2xs">
             <span className="text-4xl block mb-2">🚪</span>
-            <p className="text-sm font-semibold text-slate-700">Aaj abhi tak koi entry nahi hui</p>
+            <p className="text-sm font-bold text-slate-800">{dateLabel} abhi tak koi entry nahi hui</p>
             <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-              Darwaza band karte hi mic dabayein aur boliye — doodh, paani, laundry ya maid ka hisaab 3 second mein note ho jayega.
+              Darwaza band hote hi mic dabayein aur boliye — doodh, paani, laundry ya kaamwali didi ka hisaab 3 second mein note ho jayega.
             </p>
           </div>
         ) : (
@@ -236,11 +441,11 @@ export default function HomePage() {
               return (
                 <div
                   key={entry.id}
-                  className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-sm hover:shadow-md transition-all flex items-center justify-between"
+                  className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
                     <div 
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-inner"
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-inner flex-shrink-0"
                       style={{ backgroundColor: `${entry.vendor.color || '#3B82F6'}15` }}
                     >
                       {entry.vendor.icon || '📦'}
@@ -251,7 +456,7 @@ export default function HomePage() {
                         <h3 className="text-sm font-bold text-slate-900">
                           {entry.vendor.displayName}
                         </h3>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           entry.action === 'absent'
                             ? 'bg-red-100 text-red-700'
                             : entry.action === 'advance'
@@ -262,7 +467,7 @@ export default function HomePage() {
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-600 font-medium mt-0.5">
+                      <p className="text-xs text-slate-600 font-semibold mt-0.5">
                         {entry.action === 'absent' ? (
                           'Chhutti note ho gayi'
                         ) : entry.action === 'advance' ? (
@@ -283,13 +488,13 @@ export default function HomePage() {
 
                   <div className="flex items-center gap-2">
                     {entry.amountCalculated > 0 && (
-                      <span className="text-sm font-extrabold text-slate-900">
+                      <span className="text-sm font-black text-slate-900">
                         ₹{entry.amountCalculated.toFixed(0)}
                       </span>
                     )}
                     <button
                       onClick={() => handleUndo(entry.id)}
-                      className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                      className="text-slate-300 hover:text-red-500 p-1.5 rounded-xl hover:bg-red-50 transition-colors"
                       title="Delete entry"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -302,6 +507,69 @@ export default function HomePage() {
         )}
       </section>
 
+      {/* Manual Add Entry Modal */}
+      {showManualModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Manual Entry Add Karein</h3>
+              <button onClick={() => setShowManualModal(false)} className="text-slate-400 hover:text-slate-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleManualSubmit} className="mt-4 space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 block mb-1">Vendor Chunein</label>
+                <select
+                  value={manualVendorId}
+                  onChange={(e) => setManualVendorId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                >
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id}>{v.icon} {v.displayName} (₹{v.unitRate}/{v.unit})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 block mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    step="0.25"
+                    value={manualQty}
+                    onChange={(e) => setManualQty(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 block mb-1">Action</label>
+                  <select
+                    value={manualAction}
+                    onChange={(e) => setManualAction(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800"
+                  >
+                    <option value="received">Liya / Delivered</option>
+                    <option value="absent">Chhutti / Absent</option>
+                    <option value="given">Diya (Press)</option>
+                    <option value="advance">Cash Advance</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs shadow-md transition-all"
+              >
+                Hisaab Save Karein
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 5-Second Undo Toast */}
       {lastLoggedEntryId && toastMessage && (
         <UndoToast
@@ -312,7 +580,6 @@ export default function HomePage() {
         />
       )}
 
-      {/* Bottom Sticky Navigation */}
       <Navbar />
     </main>
   );

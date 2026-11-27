@@ -74,6 +74,7 @@ Respond strictly with a JSON object adhering to this schema:
     const parsed = JSON.parse(rawText);
     return {
       success: (parsed.items || []).length > 0,
+      intent: parsed.intent || 'log_entry',
       transcript,
       items: parsed.items || [],
       method: 'gemini',
