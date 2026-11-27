@@ -27,6 +27,7 @@ export const NUMBER_WORDS: Record<string, number> = {
   // Gujarati vernacular fractions & numerals (ગુજરાતી)
   'દોઢ': 1.5, 'dodh': 1.5,
   'અઢી': 2.5, 'adhi': 2.5,
+  'સવા': 1.25, 'sava': 1.25,
   'અડધો': 0.5, 'adho': 0.5,
   'પોણો': 0.75, 'પોણા': 0.75,
   'એક': 1, 'બે': 2, 'ત્રણ': 3, 'ચાર': 4, 'પાંચ': 5,
@@ -76,9 +77,9 @@ export const VENDOR_KEYWORDS = {
     'bislari', '20l', 'पानी', 'कैन', 'जार', 'પાણી', 'પાણીની કેન', 'पाणी'
   ],
   laundry: [
-    'press', 'presswala', 'presswale', 'istri', 'istriwala', 'iron', 'ironing', 
-    'dhobi', 'laundry', 'kapde', 'kapda', 'shirt', 'pant', 'saree', 'kurta', 
-    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े', 'કપડાં', 'ઇસ્ત્રી', 'धुलाई'
+    'press', 'presswala', 'presswale', 'istri', 'istriwala', 'iron', 'ironing', 'ironwala', 
+    'dhobi', 'dhobila', 'laundry', 'kapde', 'kapda', 'shirt', 'pant', 'saree', 'kurta', 
+    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े', 'કપડાં', 'ઇસ્ત્રી', 'ઇસ્ત્રીવાળા', 'ઇસ્ત્રીવાળો', 'ધોબી', 'धुलाई', 'धोबीला'
   ],
   maid: [
     'maid', 'didi', 'bai', 'kaamwali', 'kamwali', 'pocha', 'jhadu', 
@@ -93,8 +94,8 @@ export const VENDOR_KEYWORDS = {
 };
 
 export const CLOTHING_ITEMS: Record<string, string> = {
-  'shirt': 'shirt', 'shirts': 'shirt', 'शर्ट': 'shirt',
-  'pant': 'pant', 'pants': 'pant', 'trouser': 'pant', 'पैंट': 'pant',
+  'shirt': 'shirt', 'shirts': 'shirt', 'शर्ट': 'shirt', 'શર્ટ': 'shirt',
+  'pant': 'pant', 'pants': 'pant', 'trouser': 'pant', 'पैंट': 'pant', 'પેન્ટ': 'pant',
   'saree': 'saree', 'sari': 'saree', 'साड़ी': 'saree',
   'kurta': 'kurta', 'kurti': 'kurti', 'कुर्ता': 'kurta',
   'tshirt': 'tshirt', 't-shirt': 'tshirt',

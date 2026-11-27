@@ -84,25 +84,26 @@ export function detectIntent(text: string, role: 'household' | 'vendor' = 'house
   // 0. UNDO / ROLLBACK VOICE COMMAND (Household & Vyapari)
   // E.g.: "Undo", "Cancel karo", "Pichla cancel karo", "Arrey galat ho gaya", "Galti se entry ho gayi", "रद्द करो", "वापस लो"
   const isUndoCommand = Boolean(
-    lower.match(/^(?:undo|cancel|undo last|cancel last|radd karo|wapas lo|hatao|delete karo|रद्द करो|वापस लो|कैंसिल करो|अनडू|રદ કરો|રદ|रद्द करा)$/i) ||
-    lower.includes('undo karo') ||
-    lower.includes('cancel karo') ||
-    lower.includes('pichla cancel') ||
-    lower.includes('pichli entry cancel') ||
-    lower.includes('pichli delivery cancel') ||
-    lower.includes('arrey galat') ||
-    lower.includes('galti se') ||
-    lower.includes('galat ho gaya') ||
-    lower.includes('galat entry') ||
-    lower.includes('radd karo') ||
-    lower.includes('wapas lo') ||
+    lower.match(/\b(?:undo|cancel|radd|रद्द|વાપસ|રદ)\b/i) ||
+    lower.includes('undo') ||
+    lower.includes('cancel') ||
+    lower.includes('radd') ||
+    lower.includes('रद्द') ||
+    lower.includes('રદ') ||
+    lower.includes('मागे घ्या') ||
+    lower.includes('वापस लो') ||
     lower.includes('hata do') ||
+    lower.includes('hatao') ||
+    lower.includes('delete karo') ||
+    lower.includes('galat ho gaya') ||
+    lower.includes('galti se') ||
+    lower.includes('arrey galat') ||
     lower.includes('bhool jao') ||
-    lower.includes('गलत हो गया') ||
-    lower.includes('गलती से') ||
-    lower.includes('रद्द करो') ||
-    lower.includes('રદ કરો') ||
-    lower.includes('रद्द करा')
+    lower.includes('ભૂલ થઈ') ||
+    lower.includes('ચૂક झाली') ||
+    lower.includes('मागे घ्या') ||
+    lower.includes('pichhla') ||
+    lower.includes('pichli')
   );
 
   if (isUndoCommand) {
@@ -116,7 +117,10 @@ export function detectIntent(text: string, role: 'household' | 'vendor' = 'house
     lower.includes('vendor add') || 
     lower.includes('new vendor') ||
     lower.includes('vendor jodo') ||
-    lower.includes('vendor jodein')
+    lower.includes('vendor jodein') ||
+    lower.includes('વેન્ડર') ||
+    lower.includes('વિક્રેતા') ||
+    lower.includes('विक्रेता')
   ) {
     return 'add_vendor';
   }
@@ -127,12 +131,14 @@ export function detectIntent(text: string, role: 'household' | 'vendor' = 'house
     lower.match(/(?:^|\s)(?:add|naya|new|jodo|jodein|jodna|shamil|dakhil|जोड़ो|जोड़ो|जोड़ें|जोड़ें|शामिल|ऐड|નવો|ઉમેરો|જોડો|जोडा)(?:\s|$|[,\.!?])/i)
   );
 
+  const isCurrencyAmount = Boolean(lower.match(/\b\d{2,5}\s*(?:rupaye|rupees|rs|रुपये|રૂપિયા|रूपये)\b/i));
+
   const hasFlatReference = 
     lower.includes('flat') || 
     lower.includes('फ्लैट') || 
     lower.includes('ફ્લેટ') || 
     lower.includes('फ्लॅट') || 
-    Boolean(lower.match(/\b\d{3,4}\s*(?:number|no|नं|नंबर|નંબર|નં)?\b/i));
+    (!isCurrencyAmount && Boolean(lower.match(/\b\d{3,4}\s*(?:number|no|नं|नंबर|નંબર|નં)?\b/i)));
 
   const hasCustomerReference = 
     lower.includes('customer') || 
@@ -153,11 +159,29 @@ export function detectIntent(text: string, role: 'household' | 'vendor' = 'house
   if (
     lower.includes('kitna hua') ||
     lower.includes('kitna bill') ||
+    lower.includes('kitna baaki') ||
+    lower.includes('kitne baaki') ||
+    lower.includes('kitne paise') ||
+    lower.includes('kitna kharch') ||
     lower.includes('hisaab batao') ||
+    lower.includes('hisaab kitna') ||
     lower.includes('total kitna') ||
     lower.includes('kitne bache') ||
-    lower.includes('kitne kapde bache') ||
-    lower.includes('how much')
+    lower.includes('kitne kapde') ||
+    lower.includes('total bill') ||
+    lower.includes('how much') ||
+    lower.includes('what is my total') ||
+    lower.includes('balance is remaining') ||
+    lower.includes('how much is') ||
+    lower.includes('કેટલો થયો') ||
+    lower.includes('કેટલું બિલ') ||
+    lower.includes('કેટલા બાકી') ||
+    lower.includes('કેટલો હિસાબ') ||
+    lower.includes('કેટલા રૂપિયા') ||
+    lower.includes('किती बिल') ||
+    lower.includes('किती झाले') ||
+    lower.includes('किती पैसे') ||
+    lower.includes('हिशोब सांगा')
   ) {
     return 'query_hisaab';
   }
@@ -557,12 +581,17 @@ export function parseRuleBased(rawTranscript: string, role: 'household' | 'vendo
   }
 
   // --- LOG_ENTRY (Default Doorstep Daily Logger) ---
-  const transcript = rawTranscript.trim();
+  const devanagariDigits = '०१२३४५६७८९';
+  const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯';
+  const transcript = rawTranscript
+    .replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString())
+    .replace(/[૦-૯]/g, (d) => gujaratiDigits.indexOf(d).toString())
+    .trim();
   const lower = transcript.toLowerCase();
   const items: ParsedItem[] = [];
 
   const segments = lower
-    .split(/[,;\.\n]|(?:\s+aur\s+)|\b(?:and|phir|then|also|bhi)\b/i)
+    .split(/(?<!\d)\.|\.(?!\d)|[,;\n]|(?:\s+aur\s+)|\b(?:and|phir|then|also|bhi)\b/i)
     .map(s => s.trim())
     .filter(Boolean);
 
@@ -576,15 +605,30 @@ export function parseRuleBased(rawTranscript: string, role: 'household' | 'vendo
   // 1. MILK
   if (containsAny(lower, VENDOR_KEYWORDS.milk)) {
     const milkSeg = segments.find(s => containsAny(s, VENDOR_KEYWORDS.milk)) || lower;
-    const qty = extractNumber(milkSeg) ?? 1;
-    items.push({
-      vendorCategory: 'milk',
-      vendorName: 'Doodh Wala',
-      quantity: qty,
-      unit: 'litres',
-      action: 'received',
-      confidence: 0.95
-    });
+    const isAdvance = containsAny(milkSeg, ACTION_KEYWORDS.advance);
+    if (isAdvance) {
+      const advanceAmt = extractNumber(milkSeg) ?? 200;
+      items.push({
+        vendorCategory: 'milk',
+        vendorName: 'Doodh Wala',
+        quantity: 1,
+        unit: 'rupees',
+        action: 'advance',
+        advanceAmount: advanceAmt,
+        notes: `₹${advanceAmt} advance diya`,
+        confidence: 0.94
+      });
+    } else {
+      const qty = extractNumber(milkSeg) ?? 1;
+      items.push({
+        vendorCategory: 'milk',
+        vendorName: 'Doodh Wala',
+        quantity: qty,
+        unit: 'litres',
+        action: 'received',
+        confidence: 0.95
+      });
+    }
   }
 
   // 2. WATER
@@ -628,14 +672,18 @@ export function parseRuleBased(rawTranscript: string, role: 'household' | 'vendo
 
     const clothingCounts: Record<string, number> = {};
     let totalPieces = 0;
+    const processedCategories = new Set<string>();
+    const sortedClothingEntries = Object.entries(CLOTHING_ITEMS).sort((a, b) => b[0].length - a[0].length);
 
-    for (const [clothingWord, normalized] of Object.entries(CLOTHING_ITEMS)) {
-      const regex = new RegExp(`(\\d+|[a-z]+)\\s*${clothingWord}`, 'i');
+    for (const [clothingWord, normalized] of sortedClothingEntries) {
+      if (processedCategories.has(normalized)) continue;
+      const regex = new RegExp(`(?:(\\d+|[a-z\u0900-\u097F\u0A80-\u0AFF]+)\\s*)?(?:^|\\s)${clothingWord}(?:\\s|$|[,\.!?])`, 'i');
       const match = laundryContext.match(regex);
       if (match) {
-        const count = extractNumber(match[1]) ?? 1;
-        clothingCounts[normalized] = (clothingCounts[normalized] || 0) + count;
+        const count = match[1] ? (extractNumber(match[1]) ?? 1) : 1;
+        clothingCounts[normalized] = count;
         totalPieces += count;
+        processedCategories.add(normalized);
       }
     }
 
