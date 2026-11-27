@@ -8,7 +8,7 @@ import HouseholdDashboard from '@/components/HouseholdDashboard';
 import VendorDashboard from '@/components/VendorDashboard';
 import RoleOnboardingModal from '@/components/RoleOnboardingModal';
 import { speakHindi } from '@/lib/tts';
-import { playSuccessChime, playWarningChime } from '@/lib/chime';
+import { playSuccessChime, playWarningChime, playUndoChime } from '@/lib/chime';
 import VoiceAlertBanner, { VoiceAlert } from '@/components/VoiceAlertBanner';
 import confetti from 'canvas-confetti';
 import { X } from 'lucide-react';
@@ -235,6 +235,23 @@ export default function HomePage() {
           rawTranscript: transcript,
           suggestion: parseData.suggestion || 'Kripya flat number ya customer ka naam saaf boliye.'
         });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Case 0: CONVERSATIONAL VOICE UNDO (Vyapari & Household)
+      if (parseData.intent === 'undo_last') {
+        if (parseData.undo) {
+          playUndoChime();
+          setToastMessage(`↩️ ${parseData.message || 'Pichli entry safalta-purvak undo ho gayi!'}`);
+          speakHindi(parseData.spokenResponseHindi);
+          await fetchCustomers();
+          await fetchEntries(selectedDate);
+        } else {
+          playWarningChime();
+          setToastMessage(`⚠️ ${parseData.message || 'Undo karne ke liye koi haliya entry nahi mili.'}`);
+          speakHindi(parseData.spokenResponseHindi);
+        }
         setIsProcessing(false);
         return;
       }

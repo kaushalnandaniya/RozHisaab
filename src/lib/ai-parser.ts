@@ -58,11 +58,16 @@ Available Intents:
    Output:
    - "items": array of { "vendorCategory": string, "vendorName": string, "quantity": number, "unit": string, "action": string }
 
+6. "undo_last": The user wants to cancel, undo, or reverse their previous entry or statement.
+   Example: "Undo", "Cancel karo", "Arrey galat ho gaya cancel karo", "Pichla hatao", "रद्द करो", "गलत हो गया"
+   Output:
+   - "intent": "undo_last"
+
 Input transcript: "${transcript}"
 
 Respond strictly with a JSON object:
 {
-  "intent": "add_customer" | "vendor_delivery" | "add_vendor" | "query_hisaab" | "log_entry",
+  "intent": "add_customer" | "vendor_delivery" | "add_vendor" | "query_hisaab" | "log_entry" | "undo_last",
   "newCustomer"?: { "flatNumber": string, "customerName": string, "dailyQuantity"?: number, "phone"?: string },
   "deliveries"?: [...],
   "items"?: [...],

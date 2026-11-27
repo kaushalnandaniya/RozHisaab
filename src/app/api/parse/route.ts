@@ -11,6 +11,77 @@ export async function POST(req: NextRequest) {
 
     const result = await parseTranscript(transcript);
 
+    // Intent 0: CONVERSATIONAL VOICE UNDO & ROLLBACK
+    if (result.intent === 'undo_last') {
+      let user = await prisma.user.findFirst();
+      if (!user) user = await prisma.user.create({ data: { name: 'Sharma Household' } });
+
+      // Check most recent CustomerDelivery (route delivery in vendor mode)
+      const lastDelivery = await prisma.customerDelivery.findFirst({
+        orderBy: { createdAt: 'desc' },
+        include: { customer: true }
+      });
+
+      // Check most recent Entry (doorstep log in household mode)
+      const lastEntry = await prisma.entry.findFirst({
+        orderBy: { createdAt: 'desc' },
+        include: { vendor: true }
+      });
+
+      const deliveryTime = lastDelivery ? new Date(lastDelivery.createdAt).getTime() : 0;
+      const entryTime = lastEntry ? new Date(lastEntry.createdAt).getTime() : 0;
+
+      if (deliveryTime > 0 && deliveryTime >= entryTime) {
+        // Rollback CustomerDelivery and restore customer's balance
+        const customer = lastDelivery!.customer;
+        const newBalance = Math.max(0, customer.pendingBalance - lastDelivery!.amount);
+        await prisma.customer.update({
+          where: { id: customer.id },
+          data: { pendingBalance: newBalance }
+        });
+        await prisma.customerDelivery.delete({
+          where: { id: lastDelivery!.id }
+        });
+
+        const spokenMsg = `पिछली डिलीवरी (${customer.customerName || customer.flatNumber} - ${lastDelivery!.quantity}L) रद्द कर दी गई है।`;
+        return NextResponse.json({
+          ...result,
+          undo: true,
+          undoneType: 'vendor_delivery',
+          spokenResponseHindi: spokenMsg,
+          message: `Undone delivery for ${customer.customerName} (${lastDelivery!.quantity}L). Restored balance: ₹${newBalance}`
+        });
+      } else if (entryTime > 0) {
+        // Rollback Household Entry
+        const vendor = lastEntry!.vendor;
+        if (vendor.category === 'water' && lastEntry!.action === 'received') {
+          await prisma.vendor.update({
+            where: { id: vendor.id },
+            data: { jarDepositBalance: Math.max(0, vendor.jarDepositBalance - lastEntry!.quantity) }
+          });
+        }
+        await prisma.entry.delete({
+          where: { id: lastEntry!.id }
+        });
+
+        const spokenMsg = `पिछली एंट्री (${vendor.displayName}: ${lastEntry!.quantity} ${lastEntry!.unit}) रद्द कर दी गई है।`;
+        return NextResponse.json({
+          ...result,
+          undo: true,
+          undoneType: 'household_entry',
+          spokenResponseHindi: spokenMsg,
+          message: `Undone entry for ${vendor.displayName} (${lastEntry!.quantity} ${lastEntry!.unit}).`
+        });
+      } else {
+        return NextResponse.json({
+          ...result,
+          undo: false,
+          spokenResponseHindi: 'रद्द करने के लिए कोई हालिया एंट्री नहीं मिली।',
+          message: 'No recent entry found to undo.'
+        });
+      }
+    }
+
     // Intent 1: ADD VENDOR VIA VOICE
     if (result.intent === 'add_vendor' && result.newVendor) {
       let user = await prisma.user.findFirst();

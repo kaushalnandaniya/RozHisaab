@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import KeyNoticeBanner from '@/components/KeyNoticeBanner';
 import CustomerCalendarModal from '@/components/CustomerCalendarModal';
-import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package, TrendingUp, Building2, User, Calendar } from 'lucide-react';
+import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package, TrendingUp, Building2, User, Calendar, Download, Printer, FileSpreadsheet } from 'lucide-react';
 
 interface CustomerDelivery {
   id: string;
@@ -128,6 +128,55 @@ export default function LedgerPage() {
     }
   };
 
+  const downloadSocietyLedgerCSV = () => {
+    const today = new Date();
+    const monthYear = today.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+    
+    // Structured CSV for Society / RWA Manager
+    const headers = [
+      'Flat Number',
+      'Resident Name',
+      'Phone Number',
+      'Daily Quantity (Litres)',
+      'Estimated Monthly Supply (Litres)',
+      'Milk Rate (INR/L)',
+      'Pending Receivables (INR)',
+      'Payment Status'
+    ];
+
+    const rows = customers.map(c => [
+      `"${c.flatNumber}"`,
+      `"${c.customerName}"`,
+      `"${c.phone || '9876543210'}"`,
+      c.dailyQuantity,
+      (c.dailyQuantity * 30).toFixed(0),
+      merchantRate,
+      c.pendingBalance.toFixed(0),
+      c.pendingBalance <= 0 ? 'Cleared / Paid' : 'Pending Payment'
+    ]);
+
+    const csvContent = [
+      `# ${vendorBusinessName} — Apartment Route Ledger (${vendorRouteName})`,
+      `# Month: ${monthYear} | Exported: ${today.toLocaleDateString('en-IN')}`,
+      headers.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `RozHisaab_${vendorRouteName.replace(/[^a-zA-Z0-9]/g, '_')}_${monthYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const printSocietyStatement = () => {
+    window.print();
+  };
+
   const filteredVendors = selectedCategory === 'all'
     ? vendors
     : vendors.filter(v => v.category === selectedCategory);
@@ -202,6 +251,39 @@ export default function LedgerPage() {
             </div>
           </div>
         </div>
+
+        {/* Vendor Society Export & Audit Action Bar */}
+        {role === 'vendor' && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-emerald-200/80 rounded-3xl p-4 shadow-2xs mb-6 print:hidden">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                <FileSpreadsheet className="w-5 h-5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Society Route Reports & Audit</h2>
+                <p className="text-[11px] text-slate-500">Download formatted CSV for society RWA or print monthly billing statements</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={downloadSocietyLedgerCSV}
+                className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-xs transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export Ledger (CSV)</span>
+              </button>
+
+              <button
+                onClick={printSocietyStatement}
+                className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-xl transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Statement</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* =========================================================================
             HOUSEHOLD LEDGER: VENDOR EXPENSE TALLY

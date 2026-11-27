@@ -101,6 +101,7 @@ export default function HouseholdDashboard({
     { label: '🥛+💧 Milk & Water', text: 'Aaj doodh dedh litre liya aur 2 water can aaye' },
     { label: '👔 Press (6 clothes)', text: 'Presswale ko 4 shirt aur 2 pant diye' },
     { label: '🧹 Didi Leave', text: 'Sunita didi aaj chhutti pe hain' },
+    { label: '↩️ Undo Last (Voice)', text: 'Arrey galat ho gaya, cancel karo' },
     { label: '➕ Add Vendor', text: 'Naya vendor add karo: Ramu Car Wash, rate 500 rupaye mahina, phone 9876543210' },
     { label: '❓ Ask Balance', text: 'Is mahine paani ka total kitna hua?' }
   ];

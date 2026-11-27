@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Volume2, Sparkles, AlertCircle, PlusCircle, HelpCircle, Layers, Building2 } from 'lucide-react';
 import { SpeechRecorder, isSpeechRecognitionSupported } from '@/lib/speech';
 import { playMicStartBeep } from '@/lib/chime';
+import AudioWaveform from '@/components/AudioWaveform';
 
 interface MicButtonProps {
   onTranscriptComplete: (transcript: string) => void;
@@ -14,7 +15,7 @@ interface MicButtonProps {
 export default function MicButton({ onTranscriptComplete, isProcessing, variant = 'household' }: MicButtonProps) {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
-  const [lang, setLang] = useState<'hi-IN' | 'en-IN'>('hi-IN');
+  const [lang, setLang] = useState<'hi-IN' | 'gu-IN' | 'mr-IN' | 'en-IN'>('hi-IN');
   const [supported, setSupported] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [intentHint, setIntentHint] = useState<string>(variant === 'vendor' ? 'delivery' : 'log');
@@ -202,15 +203,25 @@ export default function MicButton({ onTranscriptComplete, isProcessing, variant 
         </button>
       </div>
 
+      {/* Wispr-Style Real-Time Reactive Audio Waveform Visualizer */}
+      <AudioWaveform isListening={isListening} variant={variant} />
+
       {/* Language Switcher Small Badge */}
       <div className="mt-3 flex items-center gap-2">
         <button
-          onClick={() => setLang(l => l === 'hi-IN' ? 'en-IN' : 'hi-IN')}
-          className="text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs flex items-center gap-1.5 transition-all"
+          onClick={() => {
+            setLang(prev => {
+              if (prev === 'hi-IN') return 'gu-IN';
+              if (prev === 'gu-IN') return 'mr-IN';
+              if (prev === 'mr-IN') return 'en-IN';
+              return 'hi-IN';
+            });
+          }}
+          className="text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs flex items-center gap-1.5 transition-all active:scale-95"
         >
           <span>🌐 Voice Lang:</span>
           <span className={`font-bold ${isVendor ? 'text-emerald-700' : 'text-blue-600'}`}>
-            {lang === 'hi-IN' ? 'हिन्दी / Hinglish' : 'English'}
+            {lang === 'hi-IN' ? 'हिन्दी / Hinglish' : lang === 'gu-IN' ? 'ગુજરાતી (Gujarati)' : lang === 'mr-IN' ? 'मराठी (Marathi)' : 'English'}
           </span>
           <span className="text-[9px] text-slate-400">(Tap to switch)</span>
         </button>

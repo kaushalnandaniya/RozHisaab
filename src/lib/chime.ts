@@ -108,3 +108,26 @@ export function playWarningChime() {
     console.warn('Web Audio warning error:', e);
   }
 }
+
+export function playUndoChime() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Descending gentle swoosh (E5 -> C5 -> A4)
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(659.25, now); // E5
+    osc.frequency.exponentialRampToValueAtTime(349.23, now + 0.28); // F4
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.28);
+  } catch (e) {
+    console.warn('Web Audio undo error:', e);
+  }
+}

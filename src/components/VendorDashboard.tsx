@@ -88,6 +88,7 @@ export default function VendorDashboard({
     { label: '➕ 405 नंदानिया जी (Hindi)', text: 'फ्लैट 405 नंदानिया जी को जोड़ो' },
     { label: '🥛 Gupta Ji 2L Extra', text: 'Gupta ji को 2 L दूध extra दिया आज' },
     { label: '🛵 Route Run (Flats 402, 501, 104)', text: 'Flat 402 dedh litre, Flat 501 do litre, Flat 104 chhutti' },
+    { label: '↩️ Undo Last Entry (Voice)', text: 'Arrey galat ho gaya, cancel karo' },
     { label: '🥛 Flat 302 Extra Milk', text: 'Flat 302 mein do litre doodh diya' },
     { label: '🏖️ Flat 104 Patel Ji Chhutti', text: 'Flat 104 Patel ji aaj chhutti pe hain' }
   ];

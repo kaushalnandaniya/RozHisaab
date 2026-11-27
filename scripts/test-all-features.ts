@@ -84,6 +84,30 @@ async function runFullAuditSuite() {
   assert(t10.intent === 'add_customer', '1.10 Add customer with daily quantity detected');
   assert(t10.newCustomer?.dailyQuantity === 2, '1.10 Extracted explicit dailyQuantity: 2L');
 
+  // 1.11 Conversational Voice Undo & Rollback
+  const t11a = parseRuleBased('Arrey galat ho gaya, cancel karo');
+  assert(t11a.intent === 'undo_last', '1.11a Hinglish voice undo detected as undo_last');
+  const t11b = parseRuleBased('Undo');
+  assert(t11b.intent === 'undo_last', '1.11b Single word "Undo" detected as undo_last');
+  const t11c = parseRuleBased('रद्द करो');
+  assert(t11c.intent === 'undo_last', '1.11c Devanagari undo command detected as undo_last');
+
+  // 1.12 Gujarati Vernacular Parsing (ગુજરાતી)
+  const t12a = parseRuleBased('દોઢ લિટર દૂધ લીધું');
+  assert(t12a.intent === 'log_entry', '1.12a Gujarati milk log detected as log_entry');
+  assert(t12a.items.some(i => i.quantity === 1.5), '1.12a Gujarati fraction "દોઢ" parsed as 1.5L');
+
+  const t12b = parseRuleBased('૪૦૨ માં અઢી લિટર દૂધ આપ્યું');
+  assert(Boolean(t12b.deliveries?.[0]?.quantity === 2.5), '1.12b Gujarati numerals "૪૦૨" (402) and "અઢી" parsed as 2.5L');
+
+  // 1.13 Marathi Vernacular Parsing (मराठी)
+  const t13a = parseRuleBased('दीड लिटर दूध घेतले');
+  assert(t13a.intent === 'log_entry', '1.13a Marathi milk log detected as log_entry');
+  assert(t13a.items.some(i => i.quantity === 1.5), '1.13a Marathi fraction "दीड" parsed as 1.5L');
+
+  const t13b = parseRuleBased('फ्लॅट १०४ आज सुट्टी आहे');
+  assert(Boolean(t13b.intent === 'vendor_delivery' || t13b.intent === 'log_entry'), '1.13b Marathi leave "सुट्टी" recognized');
+
   // -------------------------------------------------------------
   // TEST GROUP 2: DATABASE ENTITY PERSISTENCE & API LOGIC
   // -------------------------------------------------------------

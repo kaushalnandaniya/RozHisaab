@@ -24,7 +24,8 @@ export type UserIntent =
   | 'add_vendor'       // "Naya vendor add karo: Ramu Car wash, rate 500..."
   | 'query_hisaab'     // "Is mahine paani ka kitna hisaab hua?"
   | 'vendor_delivery'  // "Flat 402 dedh litre, Flat 501 do litre..."
-  | 'add_customer';    // "Add 405 flat number Nandaniya ji..."
+  | 'add_customer'     // "Add 405 flat number Nandaniya ji..."
+  | 'undo_last';       // "Arrey galat ho gaya, cancel karo" / "Undo"
 
 export interface NewCustomerPayload {
   flatNumber: string;

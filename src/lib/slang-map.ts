@@ -24,6 +24,21 @@ export const NUMBER_WORDS: Record<string, number> = {
   'आधा': 0.5,
   'पाव': 0.25,
 
+  // Gujarati vernacular fractions & numerals (ગુજરાતી)
+  'દોઢ': 1.5, 'dodh': 1.5,
+  'અઢી': 2.5, 'adhi': 2.5,
+  'અડધો': 0.5, 'adho': 0.5,
+  'પોણો': 0.75, 'પોણા': 0.75,
+  'એક': 1, 'બે': 2, 'ત્રણ': 3, 'ચાર': 4, 'પાંચ': 5,
+  'છ': 6, 'સાત': 7, 'આઠ': 8, 'નવ': 9, 'દસ': 10,
+
+  // Marathi vernacular fractions & numerals (मराठी)
+  'दीड': 1.5, 'deed': 1.5,
+  'अडीच': 2.5, 'adeech': 2.5,
+  'सव्वा': 1.25, 'savva': 1.25,
+  'अर्धा': 0.5, 'ardha': 0.5,
+  'दोन': 2, 'सहा': 6, 'नऊ': 9, 'दहा': 10,
+
   // Hindi number words (1 to 20)
   'ek': 1, 'एक': 1,
   'do': 2, 'दो': 2,
@@ -54,26 +69,26 @@ export const NUMBER_WORDS: Record<string, number> = {
 export const VENDOR_KEYWORDS = {
   milk: [
     'doodh', 'dudh', 'doodhwala', 'dudhwala', 'milk', 'milkman', 'amul', 
-    'mother dairy', 'दूध', 'दूधवाला'
+    'mother dairy', 'दूध', 'दूधवाला', 'દૂધ', 'દૂધવાળો', 'गवळी'
   ],
   water: [
     'water', 'paani', 'pani', 'can', 'cans', 'jar', 'jars', 'bisleri', 
-    'bislari', '20l', 'पानी', 'कैन', 'जार'
+    'bislari', '20l', 'पानी', 'कैन', 'जार', 'પાણી', 'પાણીની કેન', 'पाणी'
   ],
   laundry: [
     'press', 'presswala', 'presswale', 'istri', 'istriwala', 'iron', 'ironing', 
     'dhobi', 'laundry', 'kapde', 'kapda', 'shirt', 'pant', 'saree', 'kurta', 
-    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े'
+    'प्रेस', 'इस्त्री', 'धोबी', 'कपड़े', 'કપડાં', 'ઇસ્ત્રી', 'धुलाई'
   ],
   maid: [
     'maid', 'didi', 'bai', 'kaamwali', 'kamwali', 'pocha', 'jhadu', 
-    'bartan', 'cook', 'कामवाली', 'दीदी', 'बाई', 'झाड़ू', 'पोछा'
+    'bartan', 'cook', 'कामवाली', 'दीदी', 'बाई', 'झाड़ू', 'पोछा', 'કામવાળા', 'વાસીદા'
   ],
   tiffin: [
-    'tiffin', 'dabba', 'khana', 'lunch', 'meal', 'thali', 'टििफन', 'डब्बा', 'खाना'
+    'tiffin', 'dabba', 'khana', 'lunch', 'meal', 'thali', 'टििफन', 'डब्बा', 'खाना', 'ટિફિન', 'ડબ્બો'
   ],
   newspaper: [
-    'newspaper', 'paper', 'akhbar', 'akbhar', 'patrika', 'अखबार', 'पेपर'
+    'newspaper', 'paper', 'akhbar', 'akbhar', 'patrika', 'अखबार', 'पेपर', 'છાપું', 'वर्तमानपत्र'
   ]
 };
 
@@ -90,24 +105,24 @@ export const CLOTHING_ITEMS: Record<string, string> = {
 export const ACTION_KEYWORDS = {
   absent: [
     'chhutti', 'chutti', 'naaga', 'naga', 'nahi aayi', 'nahi aaya', 'leave', 
-    'absent', 'off', 'miss', 'छुट्टी', 'नागा', 'नहीं आई'
+    'absent', 'off', 'miss', 'छुट्टी', 'नागा', 'नहीं आई', 'રજા', 'સુટ્ટી', 'સુટી', 'ગેરહાજર', 'सुट्टी', 'नाही आली'
   ],
   returned: [
     'khali', 'khali jar', 'wapas', 'wapas diya', 'return', 'returned', 'empty', 
-    'खाली', 'वापस'
+    'खाली', 'वापस', 'ખાલી', 'ખાલી જાર', 'પાછું આપ્યું', 'रिकामी'
   ],
   advance: [
-    'advance', 'udhar', 'peshgi', 'advance diya', 'उधार', 'एडवांस'
+    'advance', 'udhar', 'peshgi', 'advance diya', 'उधार', 'एडवांस', 'ઉપાડ', 'अगाऊ'
   ],
   received: [
     'liya', 'aaya', 'aaye', 'mila', 'aayi', 'delivered', 'got', 'took', 
-    'लिया', 'आया', 'आए', 'मिली'
+    'लिया', 'आया', 'आए', 'मिली', 'લીધું', 'આવ્યું', 'घेतले'
   ],
   given: [
     'diya', 'diye', 'diyi', 'bheja', 'bheje', 'given', 'sent', 'gave', 
-    'दिया', 'दिए', 'भेजा'
+    'दिया', 'दिए', 'भेजा', 'આપ્યું', 'दिले'
   ],
   skipped: [
-    'skip', 'skipped', 'band', 'aaj band', 'nahi chahiye', 'बंद', 'स्किप'
+    'skip', 'skipped', 'band', 'aaj band', 'nahi chahiye', 'बंद', 'स्किप', 'બંધ', 'નથી જોઈતું'
   ]
 };

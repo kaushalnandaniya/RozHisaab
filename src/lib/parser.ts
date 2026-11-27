@@ -6,13 +6,16 @@ import { ParsedItem, ParseResult, VendorCategory, EntryAction, UserIntent, NewVe
  * Handles "dedh" (1.5), "dhaai" (2.5), "paune do" (1.75), "sawa" (1.25), "aadha" (0.5), "500", etc.
  */
 export function extractNumber(text: string): number | null {
-  // Convert Devanagari numerals to standard digits (e.g. २ -> 2)
+  // Convert Devanagari numerals (०-९) and Gujarati numerals (૦-૯) to standard digits
   const devanagariDigits = '०१२३४५६७८९';
-  const normalized = text.replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString());
+  const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯';
+  const normalized = text
+    .replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString())
+    .replace(/[૦-૯]/g, (d) => gujaratiDigits.indexOf(d).toString());
   const clean = normalized.toLowerCase().trim();
 
-  // "paune <number>" -> number - 0.25 (e.g., paune do = 1.75)
-  const pauneMatch = clean.match(/(?:paune|पौने)\s+([a-z\u0900-\u097F0-9]+)/i);
+  // "paune <number>" or "પોણા <number>" or "पावणे <number>" -> number - 0.25 (e.g., paune do = 1.75)
+  const pauneMatch = clean.match(/(?:paune|पौने|પોણા|પોણો|पावणे)\s+([a-z\u0900-\u097F\u0A80-\u0AFF0-9]+)/i);
   if (pauneMatch) {
     const nextWord = pauneMatch[1];
     const baseNum = NUMBER_WORDS[nextWord] || parseFloat(nextWord);
@@ -21,8 +24,8 @@ export function extractNumber(text: string): number | null {
     }
   }
 
-  // "sawa <number>" -> number + 0.25 (e.g., sawa do = 2.25)
-  const sawaMatch = clean.match(/(?:sawa|सवा)\s+([a-z\u0900-\u097F0-9]+)/i);
+  // "sawa <number>" or "સવા <number>" or "सव्वा <number>" -> number + 0.25 (e.g., sawa do = 2.25)
+  const sawaMatch = clean.match(/(?:sawa|सवा|સવા|सव्वा)\s+([a-z\u0900-\u097F\u0A80-\u0AFF0-9]+)/i);
   if (sawaMatch) {
     const nextWord = sawaMatch[1];
     const baseNum = NUMBER_WORDS[nextWord] || parseFloat(nextWord);
@@ -71,8 +74,41 @@ const CATEGORY_META: Record<string, { icon: string; color: string; defaultUnit: 
  * - log_entry: normal doorstep logging
  */
 export function detectIntent(text: string): UserIntent {
-  const lower = text.toLowerCase().trim();
+  const devanagariDigits = '०१२३४५६७८९';
+  const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯';
+  const normalizedText = text
+    .replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString())
+    .replace(/[૦-૯]/g, (d) => gujaratiDigits.indexOf(d).toString());
+  const lower = normalizedText.toLowerCase().trim();
   
+  // 0. UNDO / ROLLBACK VOICE COMMAND (Household & Vyapari)
+  // E.g.: "Undo", "Cancel karo", "Pichla cancel karo", "Arrey galat ho gaya", "Galti se entry ho gayi", "रद्द करो", "वापस लो"
+  const isUndoCommand = Boolean(
+    lower.match(/^(?:undo|cancel|undo last|cancel last|radd karo|wapas lo|hatao|delete karo|रद्द करो|वापस लो|कैंसिल करो|अनडू|રદ કરો|રદ|रद्द करा)$/i) ||
+    lower.includes('undo karo') ||
+    lower.includes('cancel karo') ||
+    lower.includes('pichla cancel') ||
+    lower.includes('pichli entry cancel') ||
+    lower.includes('pichli delivery cancel') ||
+    lower.includes('arrey galat') ||
+    lower.includes('galti se') ||
+    lower.includes('galat ho gaya') ||
+    lower.includes('galat entry') ||
+    lower.includes('radd karo') ||
+    lower.includes('wapas lo') ||
+    lower.includes('hata do') ||
+    lower.includes('bhool jao') ||
+    lower.includes('गलत हो गया') ||
+    lower.includes('गलती से') ||
+    lower.includes('रद्द करो') ||
+    lower.includes('રદ કરો') ||
+    lower.includes('रद्द करा')
+  );
+
+  if (isUndoCommand) {
+    return 'undo_last';
+  }
+
   // 1. ADD VENDOR (Household mode)
   if (
     lower.includes('naya vendor') || 
@@ -88,23 +124,25 @@ export function detectIntent(text: string): UserIntent {
   // 2. ADD CUSTOMER / FLAT TO ROUTE (Vyapari mode)
   // E.g.: "Add 405 flat number Nandaniya ji", "405 flat number Nandaniya ji add karo", "फ्लैट 405 नंदानिया जी को जोड़ो"
   const hasAddKeyword = Boolean(
-    lower.match(/(?:^|\s)(?:add|naya|new|jodo|jodein|jodna|shamil|dakhil|जोड़ो|जोड़ो|जोड़ें|जोड़ें|शामिल|ऐड|नया|नई)(?:\s|$|[,\.!?])/i)
+    lower.match(/(?:^|\s)(?:add|naya|new|jodo|jodein|jodna|shamil|dakhil|जोड़ो|जोड़ो|जोड़ें|जोड़ें|शामिल|ऐड|નવો|ઉમેરો|જોડો|जोडा)(?:\s|$|[,\.!?])/i)
   );
 
   const hasFlatReference = 
     lower.includes('flat') || 
     lower.includes('फ्लैट') || 
-    Boolean(lower.match(/\b\d{3,4}\s*(?:number|no|नं|नंबर|नम्बर)?\b/i));
+    lower.includes('ફ્લેટ') || 
+    lower.includes('फ्लॅट') || 
+    Boolean(lower.match(/\b\d{3,4}\s*(?:number|no|नं|नंबर|નંબર|નં)?\b/i));
 
   const hasCustomerReference = 
     lower.includes('customer') || 
     lower.includes('grahak') || 
     lower.includes('ग्राहक') || 
     lower.includes('resident') ||
-    Boolean(lower.match(/(?:^|\s)[a-zA-Z\u0900-\u097F]{2,30}\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)(?:\s|$|[,\.!?])/i));
+    Boolean(lower.match(/(?:^|\s)[a-zA-Z\u0900-\u097F\u0A80-\u0AFF]{2,30}\s*(?:ji|जी|bhai|भाई|bhaiya|भैया|ભાઈ)(?:\s|$|[,\.!?])/i));
 
   const hasDeliveryVerb = Boolean(
-    lower.match(/(?:^|\s)(?:diya|de diya|de do|de dena|chhutti|naaga|absent|extra diya|दिया|दे दिया|दे दो|छुट्टी|नागा|एक्स्ट्रा दिया)(?:\s|$|[,\.!?])/i)
+    lower.match(/(?:^|\s)(?:diya|de diya|de do|de dena|chhutti|naaga|absent|extra diya|दिया|दे दिया|दे दो|छुट्टी|नागा|एक्स्ट्रा दिया|આપ્યું|આપ્યા|લીધું|રજા|दिले|सुट्टी)(?:\s|$|[,\.!?])/i)
   );
 
   if (hasAddKeyword && (hasFlatReference || hasCustomerReference) && !hasDeliveryVerb) {
@@ -126,11 +164,11 @@ export function detectIntent(text: string): UserIntent {
 
   // 4. VENDOR DELIVERY ROUTE (Vyapari mode)
   const hasQuantityWord = Boolean(
-    lower.match(/\b(?:litre|liter|लीटर|can|cans|कैन|जार|l|dedh|dhaai|sawa|paune|aadha)\b/i) ||
-    lower.match(/\b\d+(?:\.\d+)?\s*(?:litre|liter|लीटर|can|cans|l)\b/i)
+    lower.match(/\b(?:litre|liter|लीटर|can|cans|कैन|जार|l|dedh|dhaai|sawa|paune|aadha|દોઢ|અઢી|પોણા|સવા|દૂધ|पाणी|दीड|अडीच|पावणे|सव्वा)\b/i) ||
+    lower.match(/\b\d+(?:\.\d+)?\s*(?:litre|liter|लीटर|can|cans|l|લિટર|લીટર)\b/i)
   );
 
-  if ((hasFlatReference || hasCustomerReference) && (hasDeliveryVerb || hasQuantityWord || lower.includes('doodh') || lower.includes('दूध') || lower.includes('extra') || lower.includes('एक्स्ट्रा'))) {
+  if ((hasFlatReference || hasCustomerReference) && (hasDeliveryVerb || hasQuantityWord || lower.includes('doodh') || lower.includes('दूध') || lower.includes('દૂધ') || lower.includes('extra') || lower.includes('एक्स्ट्रा'))) {
     return 'vendor_delivery';
   }
 
@@ -243,21 +281,26 @@ export function parseAddCustomer(rawTranscript: string): ParseResult {
  * Example 2: "Gupta ji को 2 L दूध extra दिया आज"
  */
 export function parseVendorDelivery(rawTranscript: string): ParseResult {
+  const devanagariDigits = '०१२३४५६७८९';
+  const gujaratiDigits = '૦૧૨૩૪૫૬૭૮૯';
+  const normalized = rawTranscript
+    .replace(/[०-९]/g, (d) => devanagariDigits.indexOf(d).toString())
+    .replace(/[૦-૯]/g, (d) => gujaratiDigits.indexOf(d).toString());
   const deliveries: VendorDeliveryItem[] = [];
-  const segments = rawTranscript.split(/[,;\n]|(?:\s+(?:aur|और)\s+)/i).map(s => s.trim()).filter(Boolean);
+  const segments = normalized.split(/[,;\n]|(?:\s+(?:aur|और|અને|आणि)\s+)/i).map(s => s.trim()).filter(Boolean);
 
   for (const seg of segments) {
     const segLower = seg.toLowerCase();
 
-    // 1. Flat number matching (e.g. Flat 402, 402, B-104, फ्लैट ३०२)
-    const flatMatch = seg.match(/(?:flat|फ्लैट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
+    // 1. Flat number matching (e.g. Flat 402, 402, B-104, फ्लैट ३०२, ફ્લેટ ૪૦૨)
+    const flatMatch = seg.match(/(?:flat|फ्लैट|ફ્લેટ|फ्लॅट\s*)?(\d{3,4}|[a-z]-\d{3})/i);
 
-    // 2. Customer name matching (e.g. Gupta ji, गुप्ता जी, Sharma ji, शर्मा जी)
-    const nameMatch = seg.match(/(?:^|\s)([a-zA-Z\u0900-\u097F]{2,30})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया)(?:\s|$|[,\.!?])/i);
+    // 2. Customer name matching (e.g. Gupta ji, गुप्ता जी, Sharma ji, शर्मा जी, પટેલ ભાઈ)
+    const nameMatch = seg.match(/(?:^|\s)([a-zA-Z\u0900-\u097F\u0A80-\u0AFF]{2,30})\s*(?:ji|जी|bhai|भाई|bhaiya|भैया|ભાઈ)(?:\s|$|[,\.!?])/i);
 
-    const isAbsent = Boolean(segLower.match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent)\b/i));
-    const isExtra = Boolean(segLower.match(/\b(?:extra|एक्स्ट्रा)\b/i));
-    const isWater = Boolean(segLower.match(/\b(?:water|can|paani|जार|कैन|पानी)\b/i));
+    const isAbsent = Boolean(segLower.match(/\b(?:chhutti|छुट्टी|band|बंद|naaga|नागा|absent|રજા|સુટ્ટી|સુટી|सुट्टी|गैरहजर)\b/i));
+    const isExtra = Boolean(segLower.match(/\b(?:extra|एक्स्ट्रा|વધારાનું)\b/i));
+    const isWater = Boolean(segLower.match(/\b(?:water|can|paani|जार|कैन|पानी|પાણી)\b/i));
 
     // Strip flat number and customer name so extractNumber doesn't grab "402" as quantity
     let segForNumber = seg;
@@ -477,6 +520,18 @@ export function parseQueryHisaab(rawTranscript: string): ParseResult {
  */
 export function parseRuleBased(rawTranscript: string): ParseResult {
   const intent = detectIntent(rawTranscript);
+
+  if (intent === 'undo_last') {
+    return {
+      success: true,
+      intent: 'undo_last',
+      transcript: rawTranscript,
+      items: [],
+      method: 'rule_based',
+      spokenResponseHindi: 'पिछली एंट्री रद्द की जा रही है...',
+      spokenResponseEnglish: 'Reversing previous entry...'
+    };
+  }
 
   if (intent === 'add_vendor') {
     return parseAddVendor(rawTranscript);
