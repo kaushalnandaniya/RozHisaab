@@ -43,6 +43,8 @@ interface CustomerCalendarModalProps {
   customer: Customer;
   businessName: string;
   routeName: string;
+  merchantUpiPhone?: string;
+  merchantRate?: number;
   isOpen: boolean;
   onClose: () => void;
   onUpdateDelivery: (customerId: string, date: string, quantity: number, action: string) => Promise<void>;
@@ -52,6 +54,8 @@ export default function CustomerCalendarModal({
   customer,
   businessName,
   routeName,
+  merchantUpiPhone = '9876543210',
+  merchantRate = 68,
   isOpen,
   onClose,
   onUpdateDelivery,
@@ -148,7 +152,7 @@ export default function CustomerCalendarModal({
     lines.push(`-----------------------------------`);
     lines.push(`🥛 *Total Milk Delivered:* ${totalLitres.toFixed(1)} Litres`);
     lines.push(`💰 *Total Balance Payable:* ₹${customer.pendingBalance.toFixed(0)}`);
-    lines.push(`\n📲 *Pay via UPI:* upi://pay?pa=9876543210@upi&pn=${encodeURIComponent(businessName)}&am=${customer.pendingBalance.toFixed(0)}`);
+    lines.push(`\n📲 *Pay via UPI:* upi://pay?pa=${merchantUpiPhone}@upi&pn=${encodeURIComponent(businessName)}&am=${customer.pendingBalance.toFixed(0)}`);
     lines.push(`\n_Hisaab generated hands-free via RozHisaab_`);
 
     const cleanPhone = customer.phone ? customer.phone.replace(/[^0-9]/g, '') : '';

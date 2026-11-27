@@ -184,7 +184,7 @@ export default function VendorSettings({
                 required
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="e.g. Raju Doodh Dairy"
               />
               <span className="text-[10px] text-slate-400 mt-1 block">Customer ke WhatsApp bill par yahi naam dikhega.</span>
@@ -197,7 +197,7 @@ export default function VendorSettings({
               <select
                 value={vendorCategory}
                 onChange={(e) => setVendorCategory(e.target.value)}
-                className="w-full font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                className="w-full font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="milk">🥛 Doodhwala (Milk Dairy Route)</option>
                 <option value="water">💧 Paani Wala (20L Water Can Agency)</option>
@@ -220,7 +220,7 @@ export default function VendorSettings({
                   required
                   value={merchantRate}
                   onChange={(e) => setMerchantRate(e.target.value)}
-                  className="w-full font-bold pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full font-bold pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="68"
                 />
               </div>
@@ -238,7 +238,7 @@ export default function VendorSettings({
                   required
                   value={merchantUpiPhone}
                   onChange={(e) => setMerchantUpiPhone(e.target.value)}
-                  className="w-full font-bold pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full font-bold pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="9876543210"
                 />
               </div>

@@ -48,6 +48,8 @@ interface VendorDashboardProps {
   businessName: string;
   vendorCategory: string;
   routeName: string;
+  merchantUpiPhone?: string;
+  merchantRate?: number;
   customers: Customer[];
   isProcessing: boolean;
   vendorBatchNotice: any[] | null;
@@ -61,6 +63,8 @@ export default function VendorDashboard({
   businessName,
   vendorCategory,
   routeName,
+  merchantUpiPhone = '9876543210',
+  merchantRate = 68,
   customers,
   isProcessing,
   vendorBatchNotice,
@@ -262,6 +266,7 @@ export default function VendorDashboard({
             <MicButton
               onTranscriptComplete={onTranscript}
               isProcessing={isProcessing}
+              variant="vendor"
             />
 
             {/* Vendor Voice Presets */}
@@ -514,6 +519,8 @@ export default function VendorDashboard({
           customer={selectedCalendarCustomer}
           businessName={businessName}
           routeName={routeName}
+          merchantUpiPhone={merchantUpiPhone}
+          merchantRate={merchantRate}
           isOpen={Boolean(selectedCalendarCustomer)}
           onClose={() => setSelectedCalendarCustomer(null)}
           onUpdateDelivery={handleUpdateDeliveryFromCalendar}
@@ -540,7 +547,7 @@ export default function VendorDashboard({
                   placeholder="e.g. Flat 602"
                   value={newFlat}
                   onChange={(e) => setNewFlat(e.target.value)}
-                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -551,7 +558,7 @@ export default function VendorDashboard({
                   placeholder="e.g. Agarwal Ji"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -562,7 +569,7 @@ export default function VendorDashboard({
                   placeholder="9876543210"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
-                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -573,7 +580,7 @@ export default function VendorDashboard({
                   step="0.5"
                   value={newQty}
                   onChange={(e) => setNewQty(e.target.value)}
-                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 

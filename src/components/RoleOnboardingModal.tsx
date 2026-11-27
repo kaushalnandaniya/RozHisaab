@@ -121,7 +121,9 @@ export default function RoleOnboardingModal({
         householdCode: householdCode.toUpperCase(),
         vendorBusinessName,
         vendorCategory,
-        vendorRouteName
+        vendorRouteName,
+        merchantRate: parseFloat(unitRate) || 68,
+        merchantUpiPhone: vendorPhone || '9876543210'
       };
 
       await fetch('/api/profile', {
@@ -276,7 +278,7 @@ export default function RoleOnboardingModal({
                     placeholder="Other name..."
                     value={familyMembers.includes(member) ? '' : member}
                     onChange={(e) => setMember(e.target.value)}
-                    className="text-xs px-3 py-1.5 rounded-xl border border-blue-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 font-medium w-28"
+                    className="text-xs px-3 py-1.5 rounded-xl border border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium w-28"
                   />
                 </div>
               </div>
@@ -294,7 +296,7 @@ export default function RoleOnboardingModal({
                   type="text"
                   value={householdCode}
                   onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
-                  className="w-full text-xs font-mono font-bold tracking-widest px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white uppercase focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full text-xs font-mono font-bold tracking-widest px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g. SHARMA-402"
                 />
                 <p className="text-[11px] text-slate-500 mt-1.5">
@@ -383,7 +385,7 @@ export default function RoleOnboardingModal({
                     type="text"
                     value={vendorBusinessName}
                     onChange={(e) => setVendorBusinessName(e.target.value)}
-                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     placeholder="e.g. Raju Doodh Dairy, Shree Ram Water Supply"
                   />
                   <span className="text-[10px] text-slate-400 font-medium">Customer ke WhatsApp bill par yahi naam jayega.</span>
@@ -398,7 +400,7 @@ export default function RoleOnboardingModal({
                       type="text"
                       value={vendorRouteName}
                       onChange={(e) => setVendorRouteName(e.target.value)}
-                      className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="e.g. Gokuldham Heights - Tower A"
                     />
                   </div>
@@ -413,7 +415,7 @@ export default function RoleOnboardingModal({
                         type="number"
                         value={unitRate}
                         onChange={(e) => setUnitRate(e.target.value)}
-                        className="w-full text-xs font-bold pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                        className="w-full text-xs font-bold pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="68"
                       />
                     </div>
@@ -430,7 +432,7 @@ export default function RoleOnboardingModal({
                       type="tel"
                       value={vendorPhone}
                       onChange={(e) => setVendorPhone(e.target.value)}
-                      className="w-full text-xs font-bold pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      className="w-full text-xs font-bold pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       placeholder="9876543210"
                     />
                   </div>

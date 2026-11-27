@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerId, deliveryDate, quantity, action, notes } = body;
+    const { customerId, deliveryDate, quantity, action, notes, clearBalance, pendingBalance } = body;
 
-    if (!customerId || !deliveryDate) {
-      return NextResponse.json({ error: 'Missing customerId or deliveryDate' }, { status: 400 });
+    if (!customerId) {
+      return NextResponse.json({ error: 'Missing customerId' }, { status: 400 });
     }
 
     const customer = await prisma.customer.findUnique({
@@ -71,8 +71,41 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
+    // 1. Direct balance update / clearing (e.g. Mark as Paid)
+    if (clearBalance === true) {
+      const updatedCustomer = await prisma.customer.update({
+        where: { id: customerId },
+        data: { pendingBalance: 0 },
+        include: {
+          deliveries: {
+            orderBy: { deliveryDate: 'asc' }
+          }
+        }
+      });
+      return NextResponse.json({ success: true, customer: updatedCustomer });
+    }
+
+    if (pendingBalance !== undefined) {
+      const updatedCustomer = await prisma.customer.update({
+        where: { id: customerId },
+        data: { pendingBalance: Math.max(0, parseFloat(pendingBalance) || 0) },
+        include: {
+          deliveries: {
+            orderBy: { deliveryDate: 'asc' }
+          }
+        }
+      });
+      return NextResponse.json({ success: true, customer: updatedCustomer });
+    }
+
+    // 2. Delivery record update
+    if (!deliveryDate) {
+      return NextResponse.json({ error: 'Missing deliveryDate' }, { status: 400 });
+    }
+
+    let user = await prisma.user.findFirst();
+    const unitRate = user?.merchantRate || 68;
     const qty = parseFloat(quantity) || 0;
-    const unitRate = 68;
     const newAmount = action === 'absent' ? 0 : qty * unitRate;
 
     // Check if delivery already exists for this date

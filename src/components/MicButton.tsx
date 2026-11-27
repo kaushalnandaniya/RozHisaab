@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Volume2, Sparkles, AlertCircle, PlusCircle, HelpCircle, Layers } from 'lucide-react';
+import { Mic, MicOff, Volume2, Sparkles, AlertCircle, PlusCircle, HelpCircle, Layers, Building2 } from 'lucide-react';
 import { SpeechRecorder, isSpeechRecognitionSupported } from '@/lib/speech';
 import { playMicStartBeep } from '@/lib/chime';
 
 interface MicButtonProps {
   onTranscriptComplete: (transcript: string) => void;
   isProcessing?: boolean;
+  variant?: 'household' | 'vendor';
 }
 
-export default function MicButton({ onTranscriptComplete, isProcessing }: MicButtonProps) {
+export default function MicButton({ onTranscriptComplete, isProcessing, variant = 'household' }: MicButtonProps) {
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [lang, setLang] = useState<'hi-IN' | 'en-IN'>('hi-IN');
   const [supported, setSupported] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [intentHint, setIntentHint] = useState<'log' | 'vendor' | 'ask'>('log');
+  const [intentHint, setIntentHint] = useState<string>(variant === 'vendor' ? 'delivery' : 'log');
 
   const recorderRef = useRef<SpeechRecorder | null>(null);
 
@@ -30,6 +31,10 @@ export default function MicButton({ onTranscriptComplete, isProcessing }: MicBut
       recorderRef.current.setLanguage(lang);
     }
   }, [lang]);
+
+  useEffect(() => {
+    setIntentHint(variant === 'vendor' ? 'delivery' : 'log');
+  }, [variant]);
 
   const toggleListening = () => {
     setErrorMsg(null);
@@ -63,53 +68,101 @@ export default function MicButton({ onTranscriptComplete, isProcessing }: MicBut
     }
   };
 
+  const isVendor = variant === 'vendor';
+
   return (
     <div className="flex flex-col items-center justify-center w-full px-4 my-5">
       {/* Top Intent Guidance Tabs */}
       <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-2xl text-[11px] font-semibold mb-4 backdrop-blur-md">
-        <button
-          onClick={() => setIntentHint('log')}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
-            intentHint === 'log'
-              ? 'bg-white text-blue-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <Layers className="w-3 h-3" />
-          <span>Doorstep Log</span>
-        </button>
+        {isVendor ? (
+          <>
+            <button
+              onClick={() => setIntentHint('delivery')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'delivery'
+                  ? 'bg-white text-emerald-800 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-3 h-3 text-emerald-600" />
+              <span>Route Delivery</span>
+            </button>
 
-        <button
-          onClick={() => setIntentHint('vendor')}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
-            intentHint === 'vendor'
-              ? 'bg-white text-emerald-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <PlusCircle className="w-3 h-3 text-emerald-600" />
-          <span>Add Vendor</span>
-        </button>
+            <button
+              onClick={() => setIntentHint('add_flat')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'add_flat'
+                  ? 'bg-white text-emerald-800 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Building2 className="w-3 h-3 text-teal-600" />
+              <span>Add Flat</span>
+            </button>
 
-        <button
-          onClick={() => setIntentHint('ask')}
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
-            intentHint === 'ask'
-              ? 'bg-white text-purple-700 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <HelpCircle className="w-3 h-3 text-purple-600" />
-          <span>Poocho</span>
-        </button>
+            <button
+              onClick={() => setIntentHint('ask')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'ask'
+                  ? 'bg-white text-purple-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <HelpCircle className="w-3 h-3 text-purple-600" />
+              <span>Poocho</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setIntentHint('log')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'log'
+                  ? 'bg-white text-blue-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-3 h-3 text-blue-600" />
+              <span>Doorstep Log</span>
+            </button>
+
+            <button
+              onClick={() => setIntentHint('vendor')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'vendor'
+                  ? 'bg-white text-emerald-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <PlusCircle className="w-3 h-3 text-emerald-600" />
+              <span>Add Vendor</span>
+            </button>
+
+            <button
+              onClick={() => setIntentHint('ask')}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                intentHint === 'ask'
+                  ? 'bg-white text-purple-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <HelpCircle className="w-3 h-3 text-purple-600" />
+              <span>Poocho</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Main Interactive Mic Button with Ripple & Wave Animations */}
       <div className="relative flex items-center justify-center">
         {isListening && (
           <>
-            <span className="absolute w-36 h-36 rounded-full bg-blue-500 opacity-25 animate-ping" />
-            <span className="absolute w-48 h-48 rounded-full bg-indigo-400 opacity-15 animate-pulse" />
+            <span className={`absolute w-36 h-36 rounded-full opacity-25 animate-ping ${
+              isVendor ? 'bg-emerald-500' : 'bg-blue-500'
+            }`} />
+            <span className={`absolute w-48 h-48 rounded-full opacity-15 animate-pulse ${
+              isVendor ? 'bg-teal-400' : 'bg-indigo-400'
+            }`} />
             <div className="absolute -top-3 z-20 bg-red-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-bounce shadow-md">
               Recording Live
             </div>
@@ -125,6 +178,8 @@ export default function MicButton({ onTranscriptComplete, isProcessing }: MicBut
               ? 'bg-gradient-to-tr from-red-600 to-rose-500 shadow-red-500/50 ring-4 ring-red-200'
               : isProcessing
               ? 'bg-gradient-to-tr from-amber-500 to-orange-500 shadow-amber-500/40 animate-pulse'
+              : isVendor
+              ? 'bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-700 hover:opacity-95 shadow-emerald-500/35 ring-4 ring-emerald-100'
               : 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 shadow-indigo-500/35 ring-4 ring-indigo-100'
           }`}
         >
@@ -154,7 +209,7 @@ export default function MicButton({ onTranscriptComplete, isProcessing }: MicBut
           className="text-[11px] font-medium text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs flex items-center gap-1.5 transition-all"
         >
           <span>🌐 Voice Lang:</span>
-          <span className="font-bold text-blue-600">
+          <span className={`font-bold ${isVendor ? 'text-emerald-700' : 'text-blue-600'}`}>
             {lang === 'hi-IN' ? 'हिन्दी / Hinglish' : 'English'}
           </span>
           <span className="text-[9px] text-slate-400">(Tap to switch)</span>
@@ -164,14 +219,30 @@ export default function MicButton({ onTranscriptComplete, isProcessing }: MicBut
       {/* Helper Prompt or Live Transcript Stream */}
       <div className="mt-3 min-h-[52px] max-w-md w-full text-center px-4">
         {isListening ? (
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-950 px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-xs animate-pulse">
-            <Volume2 className="w-4 h-4 text-blue-600 animate-bounce flex-shrink-0" />
+          <div className={`inline-flex items-center gap-2 border px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-xs animate-pulse ${
+            isVendor 
+              ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 text-emerald-950'
+              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-950'
+          }`}>
+            <Volume2 className={`w-4 h-4 animate-bounce flex-shrink-0 ${isVendor ? 'text-emerald-600' : 'text-blue-600'}`} />
             <span className="truncate">{interimTranscript || 'बोलिए, RozHisaab सुन रहा है...'}</span>
           </div>
         ) : isProcessing ? (
           <span className="text-xs text-slate-500 font-medium">
             AI entry analyze karke hisaab me jod raha hai...
           </span>
+        ) : isVendor && intentHint === 'add_flat' ? (
+          <p className="text-xs text-emerald-900 bg-emerald-50 border border-emerald-200/80 rounded-xl py-1.5 px-3">
+            बोलें: <span className="font-semibold">"Add 405 flat number Nandaniya ji"</span>
+          </p>
+        ) : isVendor && intentHint === 'ask' ? (
+          <p className="text-xs text-purple-900 bg-purple-50 border border-purple-200/80 rounded-xl py-1.5 px-3">
+            बोलें: <span className="font-semibold">"Flat 402 ka kitna pending balance hai?"</span>
+          </p>
+        ) : isVendor ? (
+          <p className="text-xs text-emerald-950 bg-emerald-50/80 border border-emerald-200 rounded-xl py-1.5 px-3">
+            बोलें: <span className="font-semibold">"Gupta ji ko 2 L doodh extra diya"</span> या <span className="font-semibold">"Flat 402 dedh litre, 501 do litre"</span>
+          </p>
         ) : intentHint === 'vendor' ? (
           <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200/80 rounded-xl py-1.5 px-3">
             बोलें: <span className="font-semibold">"Naya vendor add karo: Ramu Car Wash, rate 500 rupaye mahina, phone 9876543210"</span>

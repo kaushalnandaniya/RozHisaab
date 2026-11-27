@@ -57,6 +57,8 @@ export default function HomePage() {
   const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
   const [vendorCategory, setVendorCategory] = useState('milk');
   const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
+  const [merchantUpiPhone, setMerchantUpiPhone] = useState('9876543210');
+  const [merchantRate, setMerchantRate] = useState(68);
   
   const [entries, setEntries] = useState<Entry[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -141,6 +143,8 @@ export default function HomePage() {
         setVendorBusinessName(data.user.vendorBusinessName || 'Raju Doodh Dairy');
         setVendorCategory(data.user.vendorCategory || 'milk');
         setVendorRouteName(data.user.vendorRouteName || 'Gokuldham Heights - Tower A');
+        if (data.user.merchantUpiPhone) setMerchantUpiPhone(data.user.merchantUpiPhone);
+        if (data.user.merchantRate) setMerchantRate(data.user.merchantRate);
       }
     } catch (e) {
       console.error(e);
@@ -428,6 +432,8 @@ export default function HomePage() {
             businessName={vendorBusinessName}
             vendorCategory={vendorCategory}
             routeName={vendorRouteName}
+            merchantUpiPhone={merchantUpiPhone}
+            merchantRate={merchantRate}
             customers={customers}
             isProcessing={isProcessing}
             vendorBatchNotice={vendorBatchNotice}

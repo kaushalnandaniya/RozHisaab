@@ -234,7 +234,7 @@ export default function HouseholdSettings({
                 placeholder="+ Add member..."
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
-                className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium w-32 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="submit"
@@ -286,7 +286,7 @@ export default function HouseholdSettings({
                       type="text"
                       value={v.displayName}
                       onChange={(e) => handleVendorFieldChange(v.id, 'displayName', e.target.value)}
-                      className="text-xs font-black text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-hidden"
+                      className="text-xs font-black text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none"
                     />
                     <span className="text-[10px] text-slate-400 block capitalize">Category: {v.category}</span>
                   </div>

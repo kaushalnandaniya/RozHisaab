@@ -31,6 +31,8 @@ export default function SettlePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
   const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
+  const [merchantRate, setMerchantRate] = useState(68);
+  const [merchantUpiPhone, setMerchantUpiPhone] = useState('9876543210');
   
   // Selected states
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
@@ -64,6 +66,8 @@ export default function SettlePage() {
         setRole(data.user.role || 'household');
         if (data.user.vendorBusinessName) setVendorBusinessName(data.user.vendorBusinessName);
         if (data.user.vendorRouteName) setVendorRouteName(data.user.vendorRouteName);
+        if (data.user.merchantRate) setMerchantRate(data.user.merchantRate);
+        if (data.user.merchantUpiPhone) setMerchantUpiPhone(data.user.merchantUpiPhone);
       }
     } catch (e) {
       console.error(e);
@@ -123,9 +127,26 @@ export default function SettlePage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const markCustomerPaid = (flat: string) => {
-    playSuccessChime();
-    setPaidFlats(prev => [...prev, flat]);
+  const markCustomerPaid = async (flat: string) => {
+    const cust = customers.find(c => c.flatNumber === flat);
+    if (!cust) return;
+
+    try {
+      await fetch('/api/customers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: cust.id,
+          clearBalance: true
+        })
+      });
+
+      playSuccessChime();
+      setPaidFlats(prev => [...prev, flat]);
+      await fetchCustomers();
+    } catch (e) {
+      console.error('Failed to clear customer balance:', e);
+    }
   };
 
   // Selected customer for Vendor mode
@@ -133,7 +154,7 @@ export default function SettlePage() {
 
   const getCustomerInvoiceText = (c: Customer) => {
     const month = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-    return `🙏 *Namaste ${c.customerName}*,\n\n*${vendorBusinessName} - ${month} Bill* 📋\n${c.flatNumber} (${vendorRouteName})\n-----------------------------------\n🥛 *Daily Delivery:* ${c.dailyQuantity} L/day (Rate: ₹68/L)\n📅 *Days Delivered:* 30 days\n💰 *Total Amount Payable:* ₹${c.pendingBalance.toFixed(0)}\n\n📲 *Pay via UPI:* upi://pay?pa=9876543210@upi&pn=${encodeURIComponent(vendorBusinessName)}&am=${c.pendingBalance.toFixed(0)}\n\n_Generated hands-free via RozHisaab Vyapari Console_`;
+    return `🙏 *Namaste ${c.customerName}*,\n\n*${vendorBusinessName} - ${month} Bill* 📋\n${c.flatNumber} (${vendorRouteName})\n-----------------------------------\n🥛 *Daily Delivery:* ${c.dailyQuantity} L/day (Rate: ₹${merchantRate}/L)\n📅 *Days Delivered:* 30 days\n💰 *Total Amount Payable:* ₹${c.pendingBalance.toFixed(0)}\n\n📲 *Pay via UPI:* upi://pay?pa=${merchantUpiPhone}@upi&pn=${encodeURIComponent(vendorBusinessName)}&am=${c.pendingBalance.toFixed(0)}\n\n_Generated hands-free via RozHisaab Vyapari Console_`;
   };
 
   const getCustomerWhatsAppShareUrl = (c: Customer) => {

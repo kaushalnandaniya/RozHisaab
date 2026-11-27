@@ -169,6 +169,7 @@ export default function HouseholdDashboard({
             <MicButton
               onTranscriptComplete={onTranscript}
               isProcessing={isProcessing}
+              variant="household"
             />
 
             {/* Tap-to-Test Voice Inputs */}

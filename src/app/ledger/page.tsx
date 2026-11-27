@@ -3,7 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import KeyNoticeBanner from '@/components/KeyNoticeBanner';
-import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package, TrendingUp, Building2, User } from 'lucide-react';
+import CustomerCalendarModal from '@/components/CustomerCalendarModal';
+import { IndianRupee, Filter, ArrowUpRight, CheckCircle, Package, TrendingUp, Building2, User, Calendar } from 'lucide-react';
+
+interface CustomerDelivery {
+  id: string;
+  customerId: string;
+  deliveryDate: string;
+  quantity: number;
+  unit: string;
+  action: string;
+  amount: number;
+  notes?: string;
+}
 
 interface Vendor {
   id: string;
@@ -32,6 +44,7 @@ interface Customer {
   phone?: string;
   dailyQuantity: number;
   pendingBalance: number;
+  deliveries?: CustomerDelivery[];
 }
 
 export default function LedgerPage() {
@@ -40,7 +53,10 @@ export default function LedgerPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vendorBusinessName, setVendorBusinessName] = useState('Raju Doodh Dairy');
   const [vendorRouteName, setVendorRouteName] = useState('Gokuldham Heights - Tower A');
+  const [merchantUpiPhone, setMerchantUpiPhone] = useState('9876543210');
+  const [merchantRate, setMerchantRate] = useState(68);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCalendarCustomer, setSelectedCalendarCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,6 +81,8 @@ export default function LedgerPage() {
         setRole(data.user.role || 'household');
         if (data.user.vendorBusinessName) setVendorBusinessName(data.user.vendorBusinessName);
         if (data.user.vendorRouteName) setVendorRouteName(data.user.vendorRouteName);
+        if (data.user.merchantUpiPhone) setMerchantUpiPhone(data.user.merchantUpiPhone);
+        if (data.user.merchantRate) setMerchantRate(data.user.merchantRate);
       }
     } catch (e) {
       console.error(e);
@@ -92,6 +110,19 @@ export default function LedgerPage() {
       if (data.customers) {
         setCustomers(data.customers);
       }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleUpdateDelivery = async (customerId: string, date: string, quantity: number, action: string) => {
+    try {
+      await fetch('/api/customers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, deliveryDate: date, quantity, action })
+      });
+      await fetchCustomers();
     } catch (e) {
       console.error(e);
     }
@@ -324,9 +355,12 @@ export default function LedgerPage() {
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                    Active Delivery Customer
-                  </span>
+                  <button
+                    onClick={() => setSelectedCalendarCustomer(c)}
+                    className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition-all active:scale-95"
+                  >
+                    <span>📅 दूध का पर्चा</span>
+                  </button>
                   <a
                     href={`/settle`}
                     className="text-xs font-bold text-slate-700 hover:text-emerald-700"
@@ -337,6 +371,20 @@ export default function LedgerPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Customer 30-Day Milk Delivery Calendar Modal */}
+        {selectedCalendarCustomer && (
+          <CustomerCalendarModal
+            customer={selectedCalendarCustomer}
+            businessName={vendorBusinessName}
+            routeName={vendorRouteName}
+            merchantUpiPhone={merchantUpiPhone}
+            merchantRate={merchantRate}
+            isOpen={Boolean(selectedCalendarCustomer)}
+            onClose={() => setSelectedCalendarCustomer(null)}
+            onUpdateDelivery={handleUpdateDelivery}
+          />
         )}
 
       </div>

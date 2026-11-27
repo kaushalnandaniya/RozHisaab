@@ -76,3 +76,21 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const id = req.nextUrl.searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'Missing vendor id' }, { status: 400 });
+    }
+
+    await prisma.vendor.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true, message: 'Vendor deleted' });
+  } catch (error: any) {
+    console.error('Error deleting vendor:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
